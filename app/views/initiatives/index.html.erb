@@ -1,0 +1,27 @@
+<% @page_title = "Cross-Board Initiatives" %>
+
+<% content_for :header do %>
+  <h1 class="header__title divider divider--fade full-width" data-bridge--title-target="header">
+    <span class="overflow-ellipsis">Cross-Board Initiatives</span>
+  </h1>
+<% end %>
+
+<div class="pad-inline margin-block-start full-width" style="box-sizing: border-box; min-width: 0; max-width: 100%;">
+  <div class="initiatives-layout">
+    <!-- Left Column: Timeline & Unscheduled Tags -->
+    <div class="flex flex-column gap min-width full-width" style="min-width: 0; max-width: 100%;">
+      <%= turbo_frame_tag "timeline_grid", class: "min-width full-width" do %>
+        <%= render "initiatives/timeline", initiatives: @initiatives, active_initiative: @active_initiative %>
+      <% end %>
+
+      <%= render "initiatives/tray", tags: @tags, new_tag_ids: @new_tag_ids, recent_tag_ids: @recent_tag_ids %>
+    </div>
+
+    <!-- Right Column: Interactive Initiative Inspector Drawer -->
+    <aside class="min-width full-width" style="min-width: 0; max-width: 100%;">
+      <%= turbo_frame_tag "initiative_inspector", class: "min-width full-width" do %>
+        <%= render "initiatives/inspector", initiative: @active_initiative, cards: (@cards || []) %>
+      <% end %>
+    </aside>
+  </div>
+</div>

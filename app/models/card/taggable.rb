@@ -23,4 +23,12 @@ module Card::Taggable
   def tagged_with?(tag)
     tags.include? tag
   end
+
+  def overdue_initiatives
+    (open? && account.initiatives_enabled?) ? tags.select(&:overdue?) : []
+  end
+
+  def overdue_initiative?
+    overdue_initiatives.any?
+  end
 end

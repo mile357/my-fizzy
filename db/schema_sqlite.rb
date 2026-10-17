@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.2].define(version: 2026_08_28_120000) do
+ActiveRecord::Schema[8.2].define(version: 2026_10_16_233000) do
   create_table "accesses", id: :uuid, force: :cascade do |t|
     t.datetime "accessed_at"
     t.uuid "account_id", null: false
@@ -66,6 +66,7 @@ ActiveRecord::Schema[8.2].define(version: 2026_08_28_120000) do
     t.bigint "external_account_id"
     t.string "name", limit: 255, null: false
     t.datetime "updated_at", null: false
+    t.boolean "initiatives_enabled", default: true, null: false
     t.index ["external_account_id"], name: "index_accounts_on_external_account_id", unique: true
   end
 
@@ -234,6 +235,19 @@ ActiveRecord::Schema[8.2].define(version: 2026_08_28_120000) do
     t.index ["column_id"], name: "index_cards_on_column_id"
   end
 
+  create_table "checkpoints", id: :uuid, force: :cascade do |t|
+    t.uuid "account_id", null: false
+    t.uuid "tag_id", null: false
+    t.text "content", limit: 65535, null: false
+    t.boolean "completed", default: false, null: false
+    t.datetime "completed_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id"], name: "index_checkpoints_on_account_id"
+    t.index ["tag_id", "completed"], name: "index_checkpoints_on_tag_id_and_completed"
+    t.index ["tag_id"], name: "index_checkpoints_on_tag_id"
+  end
+
   create_table "closers_filters", id: false, force: :cascade do |t|
     t.uuid "closer_id", null: false
     t.uuid "filter_id", null: false
@@ -368,6 +382,20 @@ ActiveRecord::Schema[8.2].define(version: 2026_08_28_120000) do
     t.datetime "updated_at", null: false
     t.index ["identity_id"], name: "index_identity_transfers_on_identity_id"
     t.index ["token"], name: "index_identity_transfers_on_token", unique: true
+  end
+
+  create_table "initiative_activities", id: :uuid, force: :cascade do |t|
+    t.uuid "account_id", null: false
+    t.uuid "tag_id", null: false
+    t.uuid "creator_id", null: false
+    t.string "action", limit: 255, null: false
+    t.string "description", limit: 255, null: false
+    t.json "particulars", default: {}
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id", "created_at"], name: "index_initiative_activities_on_account_id_and_created_at"
+    t.index ["account_id"], name: "index_initiative_activities_on_account_id"
+    t.index ["tag_id", "created_at"], name: "index_initiative_activities_on_tag_id_and_created_at"
   end
 
   create_table "magic_links", id: :uuid, force: :cascade do |t|
@@ -558,6 +586,10 @@ ActiveRecord::Schema[8.2].define(version: 2026_08_28_120000) do
     t.datetime "created_at", null: false
     t.string "title", limit: 255
     t.datetime "updated_at", null: false
+    t.date "start_date"
+    t.date "end_date"
+    t.string "color"
+    t.index ["account_id", "end_date"], name: "index_tags_on_account_id_and_end_date"
     t.index ["account_id", "title"], name: "index_tags_on_account_id_and_title", unique: true
   end
 

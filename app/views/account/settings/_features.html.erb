@@ -1,0 +1,29 @@
+<section class="settings__section" id="account_features">
+  <header>
+    <h2 class="divider">Features</h2>
+    <div>Enable or disable optional capabilities for this account. Disabling a feature hides its user interface without deleting any underlying data.</div>
+  </header>
+
+  <div class="margin-block-start-half flex flex-column gap">
+    <div class="flex align-center justify-between gap pad-half border-radius" style="background: color-mix(in srgb, var(--color-ink) 4%, transparent);">
+      <div class="flex flex-column gap-quarter min-width">
+        <strong class="txt-normal font-weight-bold">Cross-Board Initiatives</strong>
+        <span class="txt-x-small opacity-75">
+          Schedule tags on a visual Gantt timeline, track milestone deliverables, and spot overdue initiatives across all boards.
+        </span>
+      </div>
+
+      <%= form_with model: account, url: account_settings_path, method: :put, scope: :account, class: "flex-shrink-0 flex align-center", data: { controller: "form" } do |form| %>
+        <label class="switch flex align-center cursor-pointer" title="<%= account.initiatives_enabled? ? 'Disable Initiatives' : 'Enable Initiatives' %>">
+          <%= form.check_box :initiatives_enabled,
+                             class: "switch__input",
+                             checked: account.initiatives_enabled?,
+                             disabled: !Current.user&.admin?,
+                             data: { action: "change->form#submit" } %>
+          <span class="switch__btn round"></span>
+          <span class="for-screen-reader">Enable Cross-Board Initiatives</span>
+        </label>
+      <% end %>
+    </div>
+  </div>
+</section>

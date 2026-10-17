@@ -1,7 +1,8 @@
 class Account::SettingsController < ApplicationController
-  wrap_parameters :account, include: %i[ name ]
+  wrap_parameters :account, include: %i[ name initiatives_enabled ]
 
   before_action :ensure_admin, only: :update
+  before_action :ensure_schema_loaded
   before_action :set_account
 
   def show
@@ -21,11 +22,15 @@ class Account::SettingsController < ApplicationController
   end
 
   private
+    def ensure_schema_loaded
+      Account.reset_column_information unless Account.column_names.include?("initiatives_enabled")
+    end
+
     def set_account
       @account = Current.account
     end
 
     def account_params
-      params.expect account: %i[ name ]
+      params.expect(account: %i[ name initiatives_enabled ])
     end
 end

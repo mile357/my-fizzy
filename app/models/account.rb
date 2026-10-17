@@ -49,6 +49,11 @@ class Account < ApplicationRecord
     imports.where(status: %i[pending processing failed]).exists?
   end
 
+  def initiatives_enabled?
+    self.class.reset_column_information unless self.class.column_names.include?("initiatives_enabled")
+    has_attribute?(:initiatives_enabled) ? super : true
+  end
+
   private
     def assign_external_account_id
       self.external_account_id ||= ExternalIdSequence.next

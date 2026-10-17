@@ -1,0 +1,11 @@
+<%= turbo_stream.replace "timeline_grid" do %>
+  <%= turbo_frame_tag "timeline_grid" do %>
+    <%= render "initiatives/timeline", initiatives: @initiatives, active_initiative: @initiative %>
+  <% end %>
+<% end %>
+
+<%= turbo_stream.replace "initiative_inspector" do %>
+  <%= turbo_frame_tag "initiative_inspector" do %>
+    <%= render "initiatives/inspector", initiative: @initiative, cards: @cards %>
+  <% end %>
+<% end %>

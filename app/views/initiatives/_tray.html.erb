@@ -1,0 +1,127 @@
+<%
+  all_tags = local_assigns[:tags] || @tags || Current.account.tags.alphabetically.preload(:cards, :taggings, :checkpoints)
+  new_tag_ids = local_assigns[:new_tag_ids] || @new_tag_ids || Tag.new_tag_ids
+  recent_tag_ids = local_assigns[:recent_tag_ids] || @recent_tag_ids || Tag.recent_tag_ids
+
+  new_tags_count = all_tags.count { |t| new_tag_ids.include?(t.id) }
+  recent_tags_count = all_tags.count { |t| recent_tag_ids.include?(t.id) }
+%>
+
+<div id="unscheduled_tags_tray"
+     class="panel pad border-radius"
+     data-controller="tag-filter"
+     data-tag-filter-current-value="<%= params[:tag_filter].presence || 'all' %>">
+
+  <!-- Header: Left Add Button (+[tag icon] pill), Centered 'Tags' Title, Right Filter Selector Pill -->
+  <div class="tray-header margin-block-end">
+    <!-- Left: Add Tag Pill Button (+[tag icon]) & Dialog -->
+    <div class="tray-header__add flex align-center">
+      <div data-controller="dialog"
+           data-action="keydown.esc->dialog#close click@document->dialog#closeOnClickOutside"
+           class="position-relative flex align-center">
+        <button type="button"
+                class="btn btn--add-tag-pill"
+                data-action="click->dialog#open:stop"
+                title="Add a new tag"
+                aria-label="Add a new tag">
+          <span class="font-weight-black" style="font-size: 1.15em; line-height: 1;">+</span>
+          <%= icon_tag "tag" %>
+        </button>
+
+        <dialog class="popup panel flex-column align-start justify-start fill-white shadow txt-small"
+                style="min-inline-size: 260px;"
+                data-dialog-target="dialog"
+                data-action="turbo:before-morph-attribute->dialog#preventCloseOnMorphing turbo:submit-end->dialog#close">
+          <div class="flex align-start justify-space-between full-width margin-block-end-quarter">
+            <strong class="popup__title">Tag this…</strong>
+          </div>
+
+          <%= form_with url: initiatives_path,
+                        method: :post,
+                        id: "new_initiative_tag_form",
+                        class: "flex flex-column gap-half full-width margin-block-quarter" do |form| %>
+            <%= form.text_field "tag[title]",
+                                placeholder: "Add a new tag…",
+                                class: "input txt-small full-width",
+                                autocomplete: "off",
+                                autofocus: true,
+                                required: true %>
+
+            <ul class="popup__list margin-block-start-quarter">
+              <li class="popup__item">
+                <%= button_tag type: "submit", class: "btn popup__btn popup__btn--create-tag flex align-center gap-half" do %>
+                  <%= icon_tag "add" %>
+                  <span>Create tag</span>
+                <% end %>
+              </li>
+            </ul>
+          <% end %>
+        </dialog>
+      </div>
+    </div>
+
+    <!-- Center: Tags Title (same size as initiative title in details section) -->
+    <h2 class="tray-header__title txt-large font-weight-black margin-none txt-align-center flex-grow">
+      Tags
+    </h2>
+
+    <!-- Right: Filter Selector Pill (All, New, Recent) -->
+    <div class="tray-header__filter tag-filter-pill flex align-center" role="group" aria-label="Tag filter options">
+      <button type="button"
+              class="tag-filter-btn tag-filter-btn--active"
+              data-action="click->tag-filter#select"
+              data-filter-value="all"
+              data-tag-filter-target="filterBtn"
+              title="Show all tags">
+        All (<%= all_tags.size %>)
+      </button>
+      <button type="button"
+              class="tag-filter-btn"
+              data-action="click->tag-filter#select"
+              data-filter-value="new"
+              data-tag-filter-target="filterBtn"
+              title="Show tags created in the past day">
+        New (<%= new_tags_count %>)
+      </button>
+      <button type="button"
+              class="tag-filter-btn"
+              data-action="click->tag-filter#select"
+              data-filter-value="recent"
+              data-tag-filter-target="filterBtn"
+              title="Show tags created or used in the past month">
+        Recent (<%= recent_tags_count %>)
+      </button>
+    </div>
+  </div>
+
+  <!-- Tags Pill List (Including Initiatives with their Gantt tag color) -->
+  <% if all_tags.any? %>
+    <div class="flex gap-quarter flex-wrap">
+      <% all_tags.each do |tag| %>
+        <%
+          is_initiative = tag.initiative?
+          is_new = new_tag_ids.include?(tag.id)
+          is_recent = recent_tag_ids.include?(tag.id)
+        %>
+        <%= link_to initiative_path(tag),
+                    data: {
+                      turbo_frame: "initiative_inspector",
+                      turbo_stream: "",
+                      tag_filter_target: "item",
+                      is_new: is_new,
+                      is_recent: is_recent
+                    },
+                    class: "btn btn--small btn--plain pad-inline-half border-radius flex align-center gap-quarter #{'tag-pill--initiative' if is_initiative}",
+                    style: is_initiative ? "background: #{tag.display_color}; color: #{tag.contrast_text_color}; border: 1px solid rgba(0,0,0,0.2); box-shadow: 0 1px 2px rgba(0,0,0,0.25);" : "background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: var(--color-ink);" do %>
+          <span class="font-weight-medium"><%= tag.hashtag %></span>
+          <span class="txt-xx-small" style="<%= is_initiative ? 'opacity: 0.9;' : 'opacity: 0.6;' %>">(<%= tag.cards_count %> cards)</span>
+        <% end %>
+      <% end %>
+    </div>
+    <div data-tag-filter-target="emptyNotice" style="display: none;" class="pad-half txt-align-center">
+      <p data-tag-filter-target="emptyNoticeText" class="txt-x-small opacity-60 italic margin-none">No tags match the selected filter.</p>
+    </div>
+  <% else %>
+    <p class="txt-x-small opacity-60 italic margin-none txt-align-center">No tags found. Click the + button above to add a new tag.</p>
+  <% end %>
+</div>

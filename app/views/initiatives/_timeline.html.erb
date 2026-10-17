@@ -1,0 +1,163 @@
+<%
+  dates = initiatives.map { |i| [i.start_date, i.end_date] }.flatten.compact
+  today = Date.current
+
+  # Span at least 12 months and encompass all initiatives
+  earliest_date = [dates.min, today - 1.month].compact.min.beginning_of_month
+  latest_date = [dates.max ? (dates.max + 1.month) : nil, earliest_date + 12.months].compact.max.end_of_month
+
+  start_window = earliest_date
+  end_window = latest_date
+  total_days = [(end_window - start_window).to_i + 1, 30].max
+
+  today_left_pct = ((today - start_window).to_f / total_days * 100).clamp(0, 100)
+
+  months = []
+  curr_month = start_window.beginning_of_month
+  while curr_month <= end_window
+    m_start = [curr_month, start_window].max
+    m_end = [curr_month.end_of_month, end_window].min
+    m_days = (m_end - m_start).to_i + 1
+    m_pct = (m_days.to_f / total_days * 100)
+    is_curr = (m_start..m_end).cover?(today)
+
+    months << {
+      label: curr_month.strftime("%B %Y"),
+      short_label: curr_month.strftime("%b '%y"),
+      pct: m_pct,
+      is_current: is_curr
+    }
+    curr_month = curr_month.next_month.beginning_of_month
+  end
+%>
+
+<div class="timeline-container" data-controller="timeline" data-timeline-today-pct-value="<%= today_left_pct.round(2) %>">
+  <!-- Timeline Controls Toolbar: Direct Zoom Presets (Right-aligned) -->
+  <div class="timeline-toolbar flex justify-end align-center margin-block-end-half">
+    <div class="timeline-zoom-pill flex align-center" role="group" aria-label="Timeline zoom presets">
+      <button type="button"
+              class="timeline-zoom-btn"
+              data-action="timeline#setZoom"
+              data-zoom="3m"
+              data-timeline-target="zoomBtn"
+              title="3 Month View (Quarterly Focus)">
+        3M
+      </button>
+      <button type="button"
+              class="timeline-zoom-btn"
+              data-action="timeline#setZoom"
+              data-zoom="6m"
+              data-timeline-target="zoomBtn"
+              title="6 Month View (Half-Year Focus)">
+        6M
+      </button>
+      <button type="button"
+              class="timeline-zoom-btn"
+              data-action="timeline#setZoom"
+              data-zoom="12m"
+              data-timeline-target="zoomBtn"
+              title="12 Month View (Annual Overview)">
+        12M
+      </button>
+    </div>
+  </div>
+
+  <!-- Timeline Card & Scrollable Viewport -->
+  <div class="timeline-card position-relative" data-zoom="6m">
+    <!-- Floating Edge Arrows (appear when content is out of frame) -->
+    <button type="button"
+            class="timeline-edge-arrow timeline-edge-arrow--left"
+            data-action="timeline#scrollLeft"
+            data-timeline-target="edgeLeftBtn"
+            title="Scroll left"
+            aria-label="Scroll left">
+      ‹
+    </button>
+    <button type="button"
+            class="timeline-edge-arrow timeline-edge-arrow--right"
+            data-action="timeline#scrollRight"
+            data-timeline-target="edgeRightBtn"
+            title="Scroll right"
+            aria-label="Scroll right">
+      ›
+    </button>
+
+    <div class="timeline-viewport"
+         data-timeline-target="viewport"
+         data-action="scroll->timeline#onScroll">
+      <div class="timeline-track" data-timeline-target="track">
+        <!-- Month Header Row (Clean, single-tier, no confusing week dates) -->
+        <div class="timeline-months-header">
+          <% months.each do |m| %>
+            <div class="timeline-months-header__col <%= 'timeline-months-header__col--current' if m[:is_current] %>" style="width: <%= m[:pct] %>%;">
+              <span class="month-full"><%= m[:label] %></span>
+              <span class="month-short"><%= m[:short_label] %></span>
+            </div>
+          <% end %>
+        </div>
+
+        <!-- Timeline Rows -->
+        <div class="timeline-rows">
+          <!-- Vertical Today Line Indicator -->
+          <div class="timeline-today-line"
+               style="left: <%= today_left_pct %>%;"
+               data-timeline-target="todayMarker"
+               title="Today: <%= today.strftime('%b %d, %Y') %>">
+            <span class="timeline-today-badge">Today</span>
+          </div>
+
+          <!-- Vertical Month Grid Lines -->
+          <div class="timeline-grid-lines">
+            <% months.each do |m| %>
+              <div class="timeline-grid-month" style="width: <%= m[:pct] %>%;"></div>
+            <% end %>
+          </div>
+
+          <% if initiatives.any? %>
+            <% initiatives.each do |initiative| %>
+              <%
+                s_date = initiative.start_date || start_window
+                e_date = initiative.end_date || (s_date + 2.weeks)
+                left_pct = [((s_date - start_window).to_f / total_days * 100).clamp(0, 99), 0].max
+                width_pct = [((e_date - s_date + 1).to_f / total_days * 100).clamp(1.5, 100 - left_pct), 1.5].max
+                is_active = active_initiative&.id == initiative.id
+                earlier_due_dates = initiative.previous_due_dates
+                bar_duration = (e_date - s_date + 1).to_f
+              %>
+              <div class="timeline-row <%= 'timeline-row--active' if is_active %>" id="<%= dom_id(initiative, :timeline_row) %>">
+                <div class="timeline-bar-wrapper">
+                  <%= link_to initiative_path(initiative),
+                              data: { turbo_frame: "initiative_inspector" },
+                              class: "timeline-bar #{'timeline-bar--overdue' if initiative.overdue?}",
+                              style: "left: #{left_pct}%; width: #{width_pct}%; --bar-color: #{initiative.display_color};",
+                              title: "#{initiative.hashtag}: #{initiative.progress_percentage}% completed (#{initiative.start_date&.strftime('%b %d, %Y')} - #{initiative.end_date&.strftime('%b %d, %Y')})" do %>
+                    <div id="<%= dom_id(initiative, :timeline_bar_fill) %>" class="timeline-bar__fill" style="width: <%= initiative.progress_percentage %>%;"></div>
+
+                    <% earlier_due_dates.each do |prev_due| %>
+                      <% if prev_due >= s_date && bar_duration > 0 %>
+                        <% marker_left = (((prev_due - s_date + 1).to_f / bar_duration) * 100).clamp(0, 100) %>
+                        <div class="timeline-bar__deadline-marker"
+                             style="left: <%= marker_left %>%;"
+                             title="Previous deadline: <%= prev_due.strftime('%b %d, %Y') %>"></div>
+                      <% end %>
+                    <% end %>
+
+                    <span class="timeline-bar__title"><%= initiative.hashtag %></span>
+                    <span id="<%= dom_id(initiative, :timeline_bar_meta) %>" class="timeline-bar__meta">
+                      <%= initiative.progress_percentage %>%
+                      <% if initiative.overdue? %>⚠️<% end %>
+                    </span>
+                  <% end %>
+                </div>
+              </div>
+            <% end %>
+          <% else %>
+            <div class="pad-double txt-align-center opacity-60">
+              <p class="txt-medium">No active initiatives scheduled on the timeline. Schedule an existing tag or click the + button in the Tags section to add a new tag!</p>
+            </div>
+          <% end %>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

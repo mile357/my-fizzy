@@ -4,7 +4,8 @@ module CardsHelper
       options.delete(:class),
       ("golden-effect" if card.golden?),
       ("card--postponed" if card.postponed?),
-      ("card--active" if card.active?)
+      ("card--active" if card.active?),
+      ("card--overdue" if card.overdue_initiative?)
     ].compact.join(" ")
 
     data[:drag_and_drop_top] = true if card.golden? && !card.closed? && !card.postponed?

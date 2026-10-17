@@ -110,6 +110,9 @@ Rails.application.routes.draw do
   end
 
   resources :tags, only: :index
+  resources :initiatives do
+    resources :checkpoints, module: :initiatives, only: [ :create, :update, :destroy ]
+  end
 
   namespace :notifications do
     resource :settings

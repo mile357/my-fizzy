@@ -1,0 +1,18 @@
+<%= turbo_stream.replace "initiative_checkpoints_#{@initiative.id}" do %>
+  <%= render "initiatives/checkpoints", initiative: @initiative %>
+<% end %>
+
+<%= turbo_stream.replace dom_id(@initiative, :timeline_bar_fill) do %>
+  <div id="<%= dom_id(@initiative, :timeline_bar_fill) %>" class="timeline-bar__fill" style="width: <%= @initiative.progress_percentage %>%;"></div>
+<% end %>
+
+<%= turbo_stream.replace dom_id(@initiative, :timeline_bar_meta) do %>
+  <span id="<%= dom_id(@initiative, :timeline_bar_meta) %>" class="timeline-bar__meta">
+    <%= @initiative.progress_percentage %>%
+    <% if @initiative.overdue? %>⚠️<% end %>
+  </span>
+<% end %>
+
+<%= turbo_stream.replace "initiative_history_#{@initiative.id}" do %>
+  <%= render "initiatives/history", initiative: @initiative %>
+<% end %>
