@@ -12,6 +12,10 @@ class Checkpoint < ApplicationRecord
     completed
   end
 
+  def toggle
+    update(completed: !completed, completed_at: (completed ? nil : Time.current))
+  end
+
   def toggle!
     update!(completed: !completed, completed_at: (completed ? nil : Time.current))
   end

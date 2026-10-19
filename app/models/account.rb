@@ -50,7 +50,6 @@ class Account < ApplicationRecord
   end
 
   def initiatives_enabled?
-    self.class.reset_column_information unless self.class.column_names.include?("initiatives_enabled")
     has_attribute?(:initiatives_enabled) ? super : true
   end
 

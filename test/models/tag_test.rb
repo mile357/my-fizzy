@@ -132,7 +132,24 @@ class TagTest < ActiveSupport::TestCase
     light_tag = Tag.new(title: "bright-yellow", color: "#ffff00")
     assert_equal "#0f172a", light_tag.contrast_text_color
 
+    light_3digit_tag = Tag.new(title: "bright-yellow-3", color: "#ff0")
+    assert_equal "#0f172a", light_3digit_tag.contrast_text_color
+
+    white_tag = Tag.new(title: "pure-white", color: "#fff")
+    assert_equal "#0f172a", white_tag.contrast_text_color
+
     dark_tag = Tag.new(title: "dark-blue", color: "#1e3a8a")
     assert_equal "#ffffff", dark_tag.contrast_text_color
+
+    dark_3digit_tag = Tag.new(title: "pure-black", color: "#000")
+    assert_equal "#ffffff", dark_3digit_tag.contrast_text_color
+  end
+
+  test "unused scope excludes tags scheduled as initiatives" do
+    unused_regular = Tag.create!(title: "purely-unused")
+    scheduled_init = Tag.create!(title: "scheduled-no-cards", start_date: Date.current, end_date: Date.current + 2.weeks)
+
+    assert_includes Tag.unused, unused_regular
+    assert_not_includes Tag.unused, scheduled_init
   end
 end

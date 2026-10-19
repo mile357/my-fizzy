@@ -1,45 +1,42 @@
+<%
+  completed_count = initiative.checkpoints.loaded? ? initiative.checkpoints.count(&:completed?) : initiative.checkpoints.completed.count
+  total_count = initiative.checkpoints.size
+%>
 <div id="initiative_checkpoints_<%= initiative.id %>" class="margin-block-start-half full-width">
   <div class="flex justify-space-between align-center margin-block-end-half">
-    <h4 class="txt-small font-weight-bold uppercase opacity-75 margin-none">
-      Milestones (<%= initiative.checkpoints.completed.count %>/<%= initiative.checkpoints.count %>)
+    <h4 id="initiative_checkpoints_<%= initiative.id %>_header" class="txt-small font-weight-bold uppercase opacity-75 margin-none">
+      Milestones (<%= completed_count %>/<%= total_count %>)
     </h4>
-    <span class="txt-small font-weight-bold" style="color: <%= initiative.display_color %>;">
+    <span id="initiative_checkpoints_<%= initiative.id %>_progress" class="txt-small font-weight-bold" style="color: <%= initiative.display_color %>;">
       <%= initiative.progress_percentage %>% Done
     </span>
   </div>
 
-  <div class="border-radius full-width overflow-hidden margin-block-end-half" style="height: 6px; background: rgba(255,255,255,0.1);">
+  <div id="initiative_checkpoints_<%= initiative.id %>_bar" class="border-radius full-width overflow-hidden margin-block-end-half" style="height: 6px; background: rgba(255,255,255,0.1);">
     <div style="height: 100%; width: <%= initiative.progress_percentage %>%; background: <%= initiative.display_color %>; transition: width 250ms ease;"></div>
   </div>
 
+  <% if defined?(@checkpoint) && @checkpoint&.errors&.any? %>
+    <div class="txt-x-small pad-half border-radius margin-block-end-quarter" style="color: #ef4444; background: rgba(239, 68, 68, 0.1);">
+      <%= @checkpoint.errors.full_messages.to_sentence %>
+    </div>
+  <% end %>
+
   <div class="checkpoints-list margin-block-end" id="checkpoints_list_<%= initiative.id %>">
-    <% if initiative.checkpoints.any? %>
-      <% initiative.checkpoints.each do |checkpoint| %>
-        <div class="checkpoint-item <%= 'checkpoint-item--completed' if checkpoint.completed? %> flex align-center gap-half pad-quarter" id="<%= dom_id(checkpoint) %>">
-          <%= form_with model: [initiative, checkpoint], url: initiative_checkpoint_path(initiative, checkpoint), method: :patch, data: { controller: "form" }, class: "flex align-center" do |f| %>
-            <%= f.check_box :completed, { class: "checkbox pointer", "aria-label": "Mark milestone '#{checkpoint.content}' as #{checkpoint.completed? ? 'incomplete' : 'complete'}", data: { action: "change->form#submit" } } %>
-          <% end %>
-
-          <span class="checkpoint-content flex-grow txt-small overflow-ellipsis">
-            <%= checkpoint.content %>
-          </span>
-
-          <%= button_to initiative_checkpoint_path(initiative, checkpoint),
-                        method: :delete,
-                        class: "btn btn--plain btn--subtle txt-x-small opacity-50 hover-opacity-100 pad-inline-quarter flex-shrink-0",
-                        title: "Delete milestone",
-                        aria: { label: "Delete milestone '#{checkpoint.content}'" } do %>
-            <%= icon_tag "close" %>
-          <% end %>
-        </div>
+    <% persisted_checkpoints = initiative.checkpoints.select(&:persisted?) %>
+    <% if persisted_checkpoints.any? %>
+      <% persisted_checkpoints.each do |checkpoint| %>
+        <%= render "initiatives/checkpoint", checkpoint: checkpoint, initiative: initiative %>
       <% end %>
     <% else %>
       <p class="txt-x-small opacity-60 italic margin-block-none">No milestones yet. Add milestone deliverables below.</p>
     <% end %>
   </div>
 
-  <%= form_with model: [initiative, Checkpoint.new], url: initiative_checkpoints_path(initiative), method: :post, class: "flex gap-quarter full-width" do |f| %>
-    <%= f.text_field :content, placeholder: "Add a milestone…", required: true, class: "input input--small flex-grow" %>
-    <%= f.submit "+ Add", class: "btn btn--small flex-shrink-0" %>
+  <% if Current.user&.admin? %>
+    <%= form_with model: [initiative, Checkpoint.new], url: initiative_checkpoints_path(initiative), method: :post, class: "flex gap-quarter full-width" do |f| %>
+      <%= f.text_field :content, placeholder: "Add a milestone…", required: true, class: "input input--small flex-grow" %>
+      <%= f.submit "+ Add", class: "btn btn--small flex-shrink-0" %>
+    <% end %>
   <% end %>
 </div>

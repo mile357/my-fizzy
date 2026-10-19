@@ -1,27 +1,38 @@
 class Initiatives::CheckpointsController < ApplicationController
   before_action :ensure_initiatives_enabled
+  before_action :ensure_admin
   before_action :set_initiative
   before_action :set_checkpoint, only: %i[ update destroy ]
 
   def create
-    @checkpoint = @initiative.checkpoints.create!(checkpoint_params)
-    InitiativeActivity.track(@initiative, action: "milestone_added", description: "Added milestone \"#{@checkpoint.content}\"")
+    @checkpoint = @initiative.checkpoints.build(checkpoint_params)
 
-    respond_to do |format|
-      format.html { redirect_to initiative_path(@initiative) }
-      format.turbo_stream
+    if @checkpoint.save
+      InitiativeActivity.track(@initiative, action: "milestone_added", description: "Added milestone \"#{@checkpoint.content}\"")
+
+      respond_to do |format|
+        format.html { redirect_to initiative_path(@initiative) }
+        format.turbo_stream
+      end
+    else
+      respond_to do |format|
+        format.html { redirect_to initiative_path(@initiative), alert: @checkpoint.errors.full_messages.to_sentence }
+        format.turbo_stream do
+          render turbo_stream: turbo_stream.replace("initiative_checkpoints_#{@initiative.id}", partial: "initiatives/checkpoints", locals: { initiative: @initiative }), status: :unprocessable_entity
+        end
+      end
     end
   end
 
   def update
     if params[:checkpoint] && params[:checkpoint].key?(:completed)
       completed_value = ActiveRecord::Type::Boolean.new.cast(params[:checkpoint][:completed])
-      @checkpoint.update!(completed: completed_value, completed_at: (completed_value ? Time.current : nil))
+      @checkpoint.update(completed: completed_value, completed_at: (completed_value ? Time.current : nil))
       action = completed_value ? "milestone_completed" : "milestone_reopened"
       desc = completed_value ? "Completed milestone \"#{@checkpoint.content}\"" : "Reopened milestone \"#{@checkpoint.content}\""
       InitiativeActivity.track(@initiative, action: action, description: desc)
     else
-      @checkpoint.update!(checkpoint_params)
+      @checkpoint.update(checkpoint_params)
     end
 
     respond_to do |format|
@@ -32,7 +43,7 @@ class Initiatives::CheckpointsController < ApplicationController
 
   def destroy
     content = @checkpoint.content
-    @checkpoint.destroy!
+    @checkpoint.destroy
     InitiativeActivity.track(@initiative, action: "milestone_removed", description: "Removed milestone \"#{content}\"")
 
     respond_to do |format|

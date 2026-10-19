@@ -1,0 +1,23 @@
+<div class="checkpoint-item <%= 'checkpoint-item--completed' if checkpoint.completed? %> flex align-center gap-half pad-quarter" id="<%= dom_id(checkpoint) %>">
+  <% if Current.user&.admin? %>
+    <%= form_with model: [initiative, checkpoint], url: initiative_checkpoint_path(initiative, checkpoint), method: :patch, data: { controller: "form" }, class: "flex align-center" do |f| %>
+      <%= f.check_box :completed, { class: "checkbox pointer", "aria-label": "Mark milestone '#{checkpoint.content}' as #{checkpoint.completed? ? 'incomplete' : 'complete'}", data: { action: "change->form#submit" } } %>
+    <% end %>
+  <% else %>
+    <input type="checkbox" class="checkbox" <%= "checked" if checkpoint.completed? %> disabled aria-label="<%= checkpoint.content %>" />
+  <% end %>
+
+  <span class="checkpoint-content flex-grow txt-small overflow-ellipsis">
+    <%= checkpoint.content %>
+  </span>
+
+  <% if Current.user&.admin? %>
+    <%= button_to initiative_checkpoint_path(initiative, checkpoint),
+                  method: :delete,
+                  class: "btn btn--plain btn--subtle txt-x-small opacity-50 hover-opacity-100 pad-inline-quarter flex-shrink-0",
+                  title: "Delete milestone",
+                  aria: { label: "Delete milestone '#{checkpoint.content}'" } do %>
+      <%= icon_tag "close" %>
+    <% end %>
+  <% end %>
+</div>

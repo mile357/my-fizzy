@@ -43,6 +43,8 @@ class Account::DataTransfer::Manifest
           ::Assignment,
           ::Tagging,
           ::Closure,
+          ::Checkpoint,
+          ::InitiativeActivity,
           ::Card::Goldness,
           ::Card::NotNow,
           ::Card::ActivitySpike,

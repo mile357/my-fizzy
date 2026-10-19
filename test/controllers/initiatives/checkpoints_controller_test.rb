@@ -45,4 +45,23 @@ class Initiatives::CheckpointsControllerTest < ActionDispatch::IntegrationTest
     post initiative_checkpoints_path(@initiative), params: { checkpoint: { content: "Hidden milestone" } }
     assert_response :not_found
   end
+
+  test "non-admin cannot create, update, or destroy checkpoints" do
+    logout_and_sign_in_as :david
+
+    post initiative_checkpoints_path(@initiative), params: { checkpoint: { content: "Unauthorized milestone" } }
+    assert_response :forbidden
+
+    patch initiative_checkpoint_path(@initiative, @checkpoint), params: { checkpoint: { completed: true } }
+    assert_response :forbidden
+
+    delete initiative_checkpoint_path(@initiative, @checkpoint)
+    assert_response :forbidden
+  end
+
+  test "create checkpoint returns unprocessable_entity on blank content" do
+    post initiative_checkpoints_path(@initiative), params: { checkpoint: { content: "" } }, as: :turbo_stream
+    assert_response :unprocessable_entity
+    assert_match "can&#39;t be blank", response.body
+  end
 end

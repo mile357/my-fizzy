@@ -12,8 +12,25 @@ class Tag < ApplicationRecord
   validate :end_date_cannot_precede_start_date
   normalizes :title, with: -> { it.downcase }
 
+  class << self
+    def new_tag_ids(account = Current.account)
+      return Set.new unless account
+
+      account.tags.where("tags.created_at >= ?", 1.day.ago).pluck(:id).to_set
+    end
+
+    def recent_tag_ids(account = Current.account)
+      return Set.new unless account
+
+      month_ago = 1.month.ago
+      ids = account.tags.where("tags.created_at >= ? OR tags.updated_at >= ?", month_ago, month_ago).pluck(:id)
+      ids += Tagging.where(account: account).where("created_at >= ?", month_ago).pluck(:tag_id)
+      ids.to_set
+    end
+  end
+
   scope :alphabetically, -> { order("lower(title)") }
-  scope :unused, -> { left_outer_joins(:taggings).where(taggings: { id: nil }) }
+  scope :unused, -> { left_outer_joins(:taggings).where(taggings: { id: nil }, start_date: nil, end_date: nil) }
   scope :initiatives, -> { where.not(start_date: nil).or(where.not(end_date: nil)) }
   scope :chronologically, -> { order(Arel.sql("COALESCE(start_date, end_date, created_at)")) }
 
@@ -36,12 +53,12 @@ class Tag < ApplicationRecord
   def completed?
     if checkpoints.loaded?
       checkpoints.any? && checkpoints.all?(&:completed?)
-    elsif checkpoints.any?
-      checkpoints.completed.count == checkpoints.count
     elsif cards.loaded?
       cards.any? && cards.none?(&:open?)
-    elsif cards.any?
-      cards.open.none?
+    elsif checkpoints.exists?
+      !checkpoints.uncompleted.exists?
+    elsif cards.exists?
+      !cards.open.exists?
     else
       false
     end
@@ -60,10 +77,12 @@ class Tag < ApplicationRecord
       else
         cards.any? ? ((cards.closed.count.to_f / cards.count) * 100).round : 0
       end
-    elsif checkpoints.any?
-      ((checkpoints.completed.count.to_f / checkpoints.count) * 100).round
-    elsif cards.any?
-      ((cards.closed.count.to_f / cards.count) * 100).round
+    elsif checkpoints.exists?
+      total = checkpoints.count
+      total > 0 ? ((checkpoints.completed.count.to_f / total) * 100).round : 0
+    elsif cards.exists?
+      total = cards.count
+      total > 0 ? ((cards.closed.count.to_f / total) * 100).round : 0
     else
       0
     end
@@ -75,6 +94,8 @@ class Tag < ApplicationRecord
 
   def contrast_text_color
     hex = display_color.to_s.delete_prefix("#")
+    hex = hex.chars.map { |c| c * 2 }.join if hex.length == 3
+
     if hex.length == 6
       r, g, b = hex.scan(/../).map { |c| c.to_i(16) }
       luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255.0
@@ -99,38 +120,24 @@ class Tag < ApplicationRecord
         end
       end
 
-      if act.description =~ /–\s+([A-Za-z]{3}\s+\d{1,2},\s+\d{4})/
-        begin
-          dates << Date.parse(::Regexp.last_match(1))
-        rescue ArgumentError, TypeError, Date::Error
-          nil
-        end
-      elsif act.description =~ /Changed target date to\s+([A-Za-z]{3}\s+\d{1,2},\s+\d{4})/
-        begin
-          dates << Date.parse(::Regexp.last_match(1))
-        rescue ArgumentError, TypeError, Date::Error
-          nil
+      if dates.empty? && act.description.present?
+        if act.description =~ /–\s+([A-Za-z]{3}\s+\d{1,2},\s+\d{4})/
+          begin
+            dates << Date.parse(::Regexp.last_match(1))
+          rescue ArgumentError, TypeError, Date::Error
+            nil
+          end
+        elsif act.description =~ /Changed target date to\s+([A-Za-z]{3}\s+\d{1,2},\s+\d{4})/
+          begin
+            dates << Date.parse(::Regexp.last_match(1))
+          rescue ArgumentError, TypeError, Date::Error
+            nil
+          end
         end
       end
     end
 
     dates.select { |d| d < end_date }.uniq.sort
-  end
-
-  def self.recent_tag_ids(account = Current.account)
-    return Set.new unless account
-
-    month_ago = 1.month.ago
-    ids = account.tags.where("tags.created_at >= ? OR tags.updated_at >= ?", month_ago, month_ago).pluck(:id)
-    ids += Tagging.where(account: account).where("created_at >= ?", month_ago).pluck(:tag_id)
-    ids += Tagging.where(account: account, card_id: account.cards.where("cards.last_active_at >= ? OR cards.updated_at >= ?", month_ago, month_ago)).pluck(:tag_id)
-    ids.to_set
-  end
-
-  def self.new_tag_ids(account = Current.account)
-    return Set.new unless account
-
-    account.tags.where("tags.created_at >= ?", 1.day.ago).pluck(:id).to_set
   end
 
   private

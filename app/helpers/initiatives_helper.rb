@@ -9,14 +9,14 @@ module InitiativesHelper
   # even with just one day difference).
   def pack_initiatives_into_lanes(initiatives, start_window = Date.current)
     sorted = initiatives.sort_by do |i|
-      s = i.start_date || start_window
+      s = i.start_date || (i.end_date ? [ i.end_date - 2.weeks, start_window ].max : start_window)
       e = [ i.end_date || (s + 2.weeks), s ].max
       [ s, e, i.title.to_s ]
     end
 
     lanes = []
     sorted.each do |initiative|
-      s_date = initiative.start_date || start_window
+      s_date = initiative.start_date || (initiative.end_date ? [ initiative.end_date - 2.weeks, start_window ].max : start_window)
       e_date = [ initiative.end_date || (s_date + 2.weeks), s_date ].max
 
       placed = false

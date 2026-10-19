@@ -1,5 +1,27 @@
-<%= turbo_stream.replace "initiative_checkpoints_#{@initiative.id}" do %>
-  <%= render "initiatives/checkpoints", initiative: @initiative %>
+<%= turbo_stream.replace dom_id(@checkpoint) do %>
+  <%= render "initiatives/checkpoint", checkpoint: @checkpoint, initiative: @initiative %>
+<% end %>
+
+<%= turbo_stream.replace "initiative_checkpoints_#{@initiative.id}_header" do %>
+  <%
+    completed_count = @initiative.checkpoints.loaded? ? @initiative.checkpoints.count(&:completed?) : @initiative.checkpoints.completed.count
+    total_count = @initiative.checkpoints.size
+  %>
+  <h4 id="initiative_checkpoints_<%= @initiative.id %>_header" class="txt-small font-weight-bold uppercase opacity-75 margin-none">
+    Milestones (<%= completed_count %>/<%= total_count %>)
+  </h4>
+<% end %>
+
+<%= turbo_stream.replace "initiative_checkpoints_#{@initiative.id}_progress" do %>
+  <span id="initiative_checkpoints_<%= @initiative.id %>_progress" class="txt-small font-weight-bold" style="color: <%= @initiative.display_color %>;">
+    <%= @initiative.progress_percentage %>% Done
+  </span>
+<% end %>
+
+<%= turbo_stream.replace "initiative_checkpoints_#{@initiative.id}_bar" do %>
+  <div id="initiative_checkpoints_<%= @initiative.id %>_bar" class="border-radius full-width overflow-hidden margin-block-end-half" style="height: 6px; background: rgba(255,255,255,0.1);">
+    <div style="height: 100%; width: <%= @initiative.progress_percentage %>%; background: <%= @initiative.display_color %>; transition: width 250ms ease;"></div>
+  </div>
 <% end %>
 
 <%= turbo_stream.replace dom_id(@initiative, :timeline_bar_fill) do %>

@@ -24,4 +24,13 @@ class CheckpointTest < ActiveSupport::TestCase
     assert_not checkpoint.completed?
     assert_nil checkpoint.completed_at
   end
+
+  test "toggle switches completion status without bang" do
+    checkpoint = @tag.checkpoints.create!(content: "Non-bang milestone", completed: false)
+    assert_not checkpoint.completed?
+
+    checkpoint.toggle
+    assert checkpoint.completed?
+    assert_not_nil checkpoint.completed_at
+  end
 end

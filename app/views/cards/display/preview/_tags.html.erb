@@ -3,7 +3,7 @@
     <%= icon_tag "tag-outline", class: "translucent" %>
     <div class="min-width overflow-ellipsis">
       <% card.tags.each_with_index do |tag, index| %>
-        <% show_overdue = Current.account.initiatives_enabled? && tag.overdue? %>
+        <% show_overdue = card.account&.initiatives_enabled? && tag.overdue? %>
         <span class="card__tag btn btn--plain overflow-ellipsis <%= 'card__tag--overdue' if show_overdue %>" <% if show_overdue %>title="Initiative overdue since <%= tag.end_date&.strftime('%b %d') %>"<% end %>>
           <%= "⚠️ " if show_overdue %><%= tag.title %><%= "," unless index == card.tags.size - 1 %>
         </span>

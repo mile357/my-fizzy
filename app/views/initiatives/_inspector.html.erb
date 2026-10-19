@@ -6,7 +6,7 @@
         <h2 class="txt-large font-weight-black margin-none overflow-ellipsis"><%= initiative.hashtag %></h2>
       </div>
 
-      <% if initiative.start_date.present? || initiative.end_date.present? %>
+      <% if Current.user&.admin? && (initiative.start_date.present? || initiative.end_date.present?) %>
         <%= button_to initiative_path(initiative),
                       method: :delete,
                       class: "btn btn--negative txt-xx-small txt-tight-lines txt-align-center flex-shrink-0",
@@ -17,31 +17,56 @@
       <% end %>
     </div>
 
+    <% if initiative.errors.any? %>
+      <div class="txt-x-small pad-half border-radius" style="color: #ef4444; background: rgba(239, 68, 68, 0.1);">
+        <%= initiative.errors.full_messages.to_sentence %>
+      </div>
+    <% end %>
+
     <% if initiative.overdue? %>
       <div class="txt-xx-small font-weight-bold border-radius pad-quarter" style="color: #ef4444; background: rgba(239, 68, 68, 0.1);">
         ⚠️ Overdue (Target was <%= initiative.end_date.strftime("%b %d, %Y") %>)
       </div>
     <% end %>
 
-    <!-- Date Range & Color Form (2-row grid so inputs never push offscreen) -->
-    <%= form_with model: initiative, url: initiative_path(initiative), method: :patch, class: "flex flex-column gap-half full-width" do |f| %>
-      <div class="grid gap-half" style="grid-template-columns: 1fr 1fr;">
-        <div class="flex flex-column gap-quarter">
-          <%= f.label :start_date, "Start Date", class: "txt-xx-small opacity-75 uppercase font-weight-bold" %>
-          <%= f.date_field :start_date, class: "input input--small" %>
+    <% if Current.user&.admin? %>
+      <!-- Date Range & Color Form (2-row grid so inputs never push offscreen) -->
+      <%= form_with model: initiative, url: initiative_path(initiative), method: :patch, class: "flex flex-column gap-half full-width" do |f| %>
+        <div class="grid gap-half" style="grid-template-columns: 1fr 1fr;">
+          <div class="flex flex-column gap-quarter">
+            <%= f.label :start_date, "Start Date", class: "txt-xx-small opacity-75 uppercase font-weight-bold" %>
+            <%= f.date_field :start_date, class: "input input--small" %>
+          </div>
+          <div class="flex flex-column gap-quarter">
+            <%= f.label :end_date, "End Date", class: "txt-xx-small opacity-75 uppercase font-weight-bold" %>
+            <%= f.date_field :end_date, class: "input input--small" %>
+          </div>
         </div>
-        <div class="flex flex-column gap-quarter">
-          <%= f.label :end_date, "End Date", class: "txt-xx-small opacity-75 uppercase font-weight-bold" %>
-          <%= f.date_field :end_date, class: "input input--small" %>
-        </div>
-      </div>
 
-      <div class="flex justify-space-between align-center gap-half margin-block-start-quarter">
-        <div class="flex align-center gap-half">
-          <%= f.color_field :color, value: initiative.display_color, class: "input input--small", style: "height: 32px; width: 38px; padding: 2px; cursor: pointer;" %>
-          <%= f.label :color, "Tag Color", class: "txt-xx-small opacity-75 font-weight-bold uppercase" %>
+        <div class="flex justify-space-between align-center gap-half margin-block-start-quarter">
+          <div class="flex align-center gap-half">
+            <%= f.color_field :color, value: initiative.display_color, class: "input input--small", style: "height: 32px; width: 38px; padding: 2px; cursor: pointer;" %>
+            <%= f.label :color, "Tag Color", class: "txt-xx-small opacity-75 font-weight-bold uppercase" %>
+          </div>
+          <%= f.submit (initiative.start_date.present? || initiative.end_date.present?) ? "Save Dates" : "Add to Timeline", class: "btn btn--small btn--primary" %>
         </div>
-        <%= f.submit (initiative.start_date.present? || initiative.end_date.present?) ? "Save Dates" : "Add to Timeline", class: "btn btn--small btn--primary" %>
+      <% end %>
+    <% else %>
+      <div class="pad-half border-radius flex flex-column gap-quarter" style="background: rgba(255,255,255,0.04);">
+        <div class="flex justify-space-between align-center txt-small">
+          <span class="opacity-75">Schedule:</span>
+          <strong class="font-weight-semibold">
+            <% if initiative.start_date.present? && initiative.end_date.present? %>
+              <%= initiative.start_date.strftime("%b %d, %Y") %> – <%= initiative.end_date.strftime("%b %d, %Y") %>
+            <% elsif initiative.end_date.present? %>
+              Target: <%= initiative.end_date.strftime("%b %d, %Y") %>
+            <% elsif initiative.start_date.present? %>
+              Starts: <%= initiative.start_date.strftime("%b %d, %Y") %>
+            <% else %>
+              Not scheduled
+            <% end %>
+          </strong>
+        </div>
       </div>
     <% end %>
 

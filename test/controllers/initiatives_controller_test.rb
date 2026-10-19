@@ -109,4 +109,59 @@ class InitiativesControllerTest < ActionDispatch::IntegrationTest
     assert_select "#timeline_lane_0 .timeline-bar", count: 2
     assert_select "#timeline_lane_1", count: 0
   end
+
+  test "non-admin can view index and show but cannot mutate initiatives" do
+    logout_and_sign_in_as :david
+
+    get initiatives_path
+    assert_response :success
+    assert_no_match "btn--add-tag-pill", response.body
+
+    get initiative_path(@initiative)
+    assert_response :success
+
+    post initiatives_path, params: { tag: { title: "unauthorized-init" } }
+    assert_response :forbidden
+
+    patch initiative_path(@initiative), params: { tag: { color: "#ff0000" } }
+    assert_response :forbidden
+
+    delete initiative_path(@initiative)
+    assert_response :forbidden
+  end
+
+  test "update returns unprocessable_entity on validation failure" do
+    patch initiative_path(@initiative),
+          params: { tag: { start_date: Date.current, end_date: 1.week.ago } },
+          as: :turbo_stream
+
+    assert_response :unprocessable_entity
+    assert_match "cannot precede start date", response.body
+  end
+
+  test "cards on restricted boards are filtered out for users without access" do
+    private_board = boards(:private)
+    private_card = nil
+    Current.set(user: users(:kevin)) do
+      private_card = Card.create!(
+        account: @initiative.account,
+        board: private_board,
+        creator: users(:kevin),
+        title: "Super Secret Card",
+        status: "published"
+      )
+    end
+    Tagging.create!(account: @initiative.account, tag: @initiative, card: private_card)
+
+    # Kevin has access to private board and can see it
+    get initiative_path(@initiative)
+    assert_response :success
+    assert_match "Super Secret Card", response.body
+
+    # David has no access to private board and should NOT see the card
+    logout_and_sign_in_as :david
+    get initiative_path(@initiative)
+    assert_response :success
+    assert_no_match "Super Secret Card", response.body
+  end
 end
