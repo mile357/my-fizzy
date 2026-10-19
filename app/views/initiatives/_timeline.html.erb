@@ -36,35 +36,39 @@
      data-timeline-today-pct-value="<%= today_left_pct.round(2) %>"
      style="box-sizing: border-box; min-width: 0; max-width: 100%;">
 
-  <!-- Timeline Frame Header: Title & Direct Zoom Presets -->
-  <div class="timeline-header flex justify-between align-center margin-block-end gap-half">
-    <h2 class="timeline-header__title txt-large font-weight-black margin-none">Timeline</h2>
+  <!-- Timeline Frame Header: Centered Title & Direct Zoom Presets -->
+  <div class="timeline-header margin-block-end">
+    <div class="timeline-header__left flex align-center"></div>
 
-    <div class="timeline-zoom-pill flex align-center" role="group" aria-label="Timeline zoom presets">
-      <button type="button"
-              class="timeline-zoom-btn"
-              data-action="timeline#setZoom"
-              data-zoom="3m"
-              data-timeline-target="zoomBtn"
-              title="3 Month View (Quarterly Focus)">
-        3M
-      </button>
-      <button type="button"
-              class="timeline-zoom-btn"
-              data-action="timeline#setZoom"
-              data-zoom="6m"
-              data-timeline-target="zoomBtn"
-              title="6 Month View (Half-Year Focus)">
-        6M
-      </button>
-      <button type="button"
-              class="timeline-zoom-btn"
-              data-action="timeline#setZoom"
-              data-zoom="12m"
-              data-timeline-target="zoomBtn"
-              title="12 Month View (Annual Overview)">
-        12M
-      </button>
+    <h2 class="timeline-header__title txt-large font-weight-black margin-none txt-align-center">Timeline</h2>
+
+    <div class="timeline-header__zoom flex align-center justify-end">
+      <div class="timeline-zoom-pill flex align-center" role="group" aria-label="Timeline zoom presets">
+        <button type="button"
+                class="timeline-zoom-btn"
+                data-action="timeline#setZoom"
+                data-zoom="3m"
+                data-timeline-target="zoomBtn"
+                title="3 Month View (Quarterly Focus)">
+          3M
+        </button>
+        <button type="button"
+                class="timeline-zoom-btn"
+                data-action="timeline#setZoom"
+                data-zoom="6m"
+                data-timeline-target="zoomBtn"
+                title="6 Month View (Half-Year Focus)">
+          6M
+        </button>
+        <button type="button"
+                class="timeline-zoom-btn"
+                data-action="timeline#setZoom"
+                data-zoom="12m"
+                data-timeline-target="zoomBtn"
+                title="12 Month View (Annual Overview)">
+          12M
+        </button>
+      </div>
     </div>
   </div>
 
