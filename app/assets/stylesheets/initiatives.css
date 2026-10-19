@@ -140,7 +140,7 @@
   }
 
   .timeline-zoom-btn {
-    padding: 4px 14px;
+    padding: 4px 12px;
     font-size: var(--text-x-small, 0.78rem);
     font-weight: 700;
     text-transform: uppercase;
@@ -346,6 +346,7 @@
     opacity: 0;
     pointer-events: none;
     transition: opacity 180ms ease, transform 180ms ease, background 120ms ease;
+    --icon-size: 0.9em;
   }
 
   .timeline-edge-arrow:hover {
@@ -480,6 +481,11 @@
     gap: 0.6rem;
     padding: 0.4rem 0;
     border-bottom: 1px solid var(--color-border-subtle, rgba(255, 255, 255, 0.06));
+  }
+
+  .checkpoint-item .btn {
+    --btn-icon-size: 0.75em;
+    --icon-size: 0.75em;
   }
 
   .checkpoint-item:last-child {
@@ -748,7 +754,7 @@
   }
 
   .tag-filter-btn {
-    padding: 5px 12px;
+    padding: 4px 12px;
     font-size: var(--text-x-small, 0.78rem);
     font-weight: 700;
     white-space: nowrap;
