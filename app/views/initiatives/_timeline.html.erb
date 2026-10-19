@@ -31,9 +31,15 @@
   end
 %>
 
-<div class="timeline-container" data-controller="timeline" data-timeline-today-pct-value="<%= today_left_pct.round(2) %>">
-  <!-- Timeline Controls Toolbar: Direct Zoom Presets (Right-aligned) -->
-  <div class="timeline-toolbar flex justify-end align-center margin-block-end-half">
+<div class="panel pad border-radius timeline-container full-width"
+     data-controller="timeline"
+     data-timeline-today-pct-value="<%= today_left_pct.round(2) %>"
+     style="box-sizing: border-box; min-width: 0; max-width: 100%;">
+
+  <!-- Timeline Frame Header: Title & Direct Zoom Presets -->
+  <div class="timeline-header flex justify-between align-center margin-block-end gap-half">
+    <h2 class="timeline-header__title txt-large font-weight-black margin-none">Timeline</h2>
+
     <div class="timeline-zoom-pill flex align-center" role="group" aria-label="Timeline zoom presets">
       <button type="button"
               class="timeline-zoom-btn"

@@ -9,6 +9,7 @@ class InitiativesControllerTest < ActionDispatch::IntegrationTest
   test "index" do
     get initiatives_path
     assert_response :success
+    assert_match "Timeline", response.body
     assert_match "Tags", response.body
     assert_match "All (", response.body
     assert_match "New (", response.body
@@ -16,6 +17,7 @@ class InitiativesControllerTest < ActionDispatch::IntegrationTest
     assert_match "tag-pill--initiative", response.body
     assert_match "btn--add-tag-pill", response.body
     assert_match "tag-filter-pill", response.body
+    assert_select ".timeline-header__title", text: "Timeline"
   end
 
   test "show" do
