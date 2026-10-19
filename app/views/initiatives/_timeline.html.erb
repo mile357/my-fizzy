@@ -114,39 +114,45 @@
           </div>
 
           <% if initiatives.any? %>
-            <% initiatives.each do |initiative| %>
-              <%
-                s_date = initiative.start_date || start_window
-                e_date = initiative.end_date || (s_date + 2.weeks)
-                left_pct = [((s_date - start_window).to_f / total_days * 100).clamp(0, 99), 0].max
-                width_pct = [((e_date - s_date + 1).to_f / total_days * 100).clamp(1.5, 100 - left_pct), 1.5].max
-                is_active = active_initiative&.id == initiative.id
-                earlier_due_dates = initiative.previous_due_dates
-                bar_duration = (e_date - s_date + 1).to_f
-              %>
-              <div class="timeline-row <%= 'timeline-row--active' if is_active %>" id="<%= dom_id(initiative, :timeline_row) %>">
+            <% lanes = pack_initiatives_into_lanes(initiatives, start_window) %>
+            <% lanes.each_with_index do |lane, lane_idx| %>
+              <% lane_is_active = lane[:items].any? { |item| active_initiative&.id == item[:initiative].id } %>
+              <div class="timeline-row <%= 'timeline-row--active' if lane_is_active %>" id="timeline_lane_<%= lane_idx %>">
                 <div class="timeline-bar-wrapper">
-                  <%= link_to initiative_path(initiative),
-                              data: { turbo_frame: "initiative_inspector" },
-                              class: "timeline-bar #{'timeline-bar--overdue' if initiative.overdue?}",
-                              style: "left: #{left_pct}%; width: #{width_pct}%; --bar-color: #{initiative.display_color};",
-                              title: "#{initiative.hashtag}: #{initiative.progress_percentage}% completed (#{initiative.start_date&.strftime('%b %d, %Y')} - #{initiative.end_date&.strftime('%b %d, %Y')})" do %>
-                    <div id="<%= dom_id(initiative, :timeline_bar_fill) %>" class="timeline-bar__fill" style="width: <%= initiative.progress_percentage %>%;"></div>
+                  <% lane[:items].each do |item| %>
+                    <%
+                      initiative = item[:initiative]
+                      s_date = item[:start_date]
+                      e_date = item[:end_date]
+                      left_pct = [((s_date - start_window).to_f / total_days * 100).clamp(0, 99), 0].max
+                      width_pct = [((e_date - s_date + 1).to_f / total_days * 100).clamp(1.5, 100 - left_pct), 1.5].max
+                      is_active = active_initiative&.id == initiative.id
+                      earlier_due_dates = initiative.previous_due_dates
+                      bar_duration = (e_date - s_date + 1).to_f
+                    %>
+                    <%= link_to initiative_path(initiative),
+                                data: { turbo_frame: "initiative_inspector" },
+                                class: "timeline-bar #{'timeline-bar--overdue' if initiative.overdue?} #{'timeline-bar--active' if is_active}",
+                                id: dom_id(initiative, :timeline_bar),
+                                style: "left: #{left_pct}%; width: calc(#{width_pct}% - 2px); --bar-color: #{initiative.display_color};",
+                                title: "#{initiative.hashtag}: #{initiative.progress_percentage}% completed (#{initiative.start_date&.strftime('%b %d, %Y')} - #{initiative.end_date&.strftime('%b %d, %Y')})" do %>
+                      <div id="<%= dom_id(initiative, :timeline_bar_fill) %>" class="timeline-bar__fill" style="width: <%= initiative.progress_percentage %>%;"></div>
 
-                    <% earlier_due_dates.each do |prev_due| %>
-                      <% if prev_due >= s_date && bar_duration > 0 %>
-                        <% marker_left = (((prev_due - s_date + 1).to_f / bar_duration) * 100).clamp(0, 100) %>
-                        <div class="timeline-bar__deadline-marker"
-                             style="left: <%= marker_left %>%;"
-                             title="Previous deadline: <%= prev_due.strftime('%b %d, %Y') %>"></div>
+                      <% earlier_due_dates.each do |prev_due| %>
+                        <% if prev_due >= s_date && bar_duration > 0 %>
+                          <% marker_left = (((prev_due - s_date + 1).to_f / bar_duration) * 100).clamp(0, 100) %>
+                          <div class="timeline-bar__deadline-marker"
+                               style="left: <%= marker_left %>%;"
+                               title="Previous deadline: <%= prev_due.strftime('%b %d, %Y') %>"></div>
+                        <% end %>
                       <% end %>
-                    <% end %>
 
-                    <span class="timeline-bar__title"><%= initiative.hashtag %></span>
-                    <span id="<%= dom_id(initiative, :timeline_bar_meta) %>" class="timeline-bar__meta">
-                      <%= initiative.progress_percentage %>%
-                      <% if initiative.overdue? %>⚠️<% end %>
-                    </span>
+                      <span class="timeline-bar__title"><%= initiative.hashtag %></span>
+                      <span id="<%= dom_id(initiative, :timeline_bar_meta) %>" class="timeline-bar__meta">
+                        <%= initiative.progress_percentage %>%
+                        <% if initiative.overdue? %>⚠️<% end %>
+                      </span>
+                    <% end %>
                   <% end %>
                 </div>
               </div>

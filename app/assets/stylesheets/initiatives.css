@@ -321,7 +321,7 @@
     padding: 0.35rem 0;
     position: relative;
     z-index: 2;
-    cursor: pointer;
+    cursor: default;
     transition: background 150ms ease;
   }
 
@@ -333,13 +333,14 @@
     flex-grow: 1;
     position: relative;
     height: 36px;
-    display: flex;
-    align-items: center;
+    width: 100%;
   }
 
   .timeline-bar {
-    position: relative;
+    position: absolute;
+    top: 2px;
     height: 32px;
+    box-sizing: border-box;
     border-radius: 6px;
     background: var(--bar-color, #3b82f6);
     color: #ffffff;
@@ -350,6 +351,7 @@
     font-size: 0.85rem;
     font-weight: 600;
     overflow: hidden;
+    cursor: pointer;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
     transition: transform 150ms ease, box-shadow 150ms ease;
   }
@@ -357,10 +359,21 @@
   .timeline-bar:hover {
     transform: translateY(-1px);
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.25);
+    z-index: 4;
+  }
+
+  .timeline-bar--active {
+    box-shadow: 0 0 0 2px var(--color-surface, #1e293b), 0 0 0 4px #3b82f6, 0 4px 10px rgba(0, 0, 0, 0.35);
+    z-index: 5;
   }
 
   .timeline-bar--overdue {
     box-shadow: 0 0 0 2px #ef4444;
+  }
+
+  .timeline-bar--overdue.timeline-bar--active {
+    box-shadow: 0 0 0 2px var(--color-surface, #1e293b), 0 0 0 4px #ef4444, 0 4px 10px rgba(0, 0, 0, 0.35);
+    z-index: 5;
   }
 
   .timeline-bar__fill {
@@ -396,6 +409,7 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    min-width: 0;
   }
 
   .timeline-bar__meta {

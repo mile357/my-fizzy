@@ -99,4 +99,12 @@ class InitiativesControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to root_path
     assert_equal "Cross-Board Initiatives are disabled for this account.", flash[:alert]
   end
+
+  test "index packs non-overlapping initiatives into the same lane" do
+    Tag.create!(title: "next-init", start_date: @initiative.end_date + 1.day, end_date: @initiative.end_date + 2.weeks)
+    get initiatives_path
+    assert_response :success
+    assert_select "#timeline_lane_0 .timeline-bar", count: 2
+    assert_select "#timeline_lane_1", count: 0
+  end
 end
