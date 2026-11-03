@@ -1,30 +1,34 @@
+<%
+  activities = initiative.activities.loaded? ? initiative.activities : initiative.activities.preload(creator: :account)
+  events_count = activities.size
+%>
 <div id="initiative_history_<%= initiative.id %>" class="full-width margin-block-start-half">
   <div class="flex justify-space-between align-center margin-block-end-half">
-    <h4 class="txt-small font-weight-bold uppercase opacity-75 margin-none">
+    <h4 class="txt-small font-weight-bold txt-uppercase txt-subtle margin-none">
       Initiative History
     </h4>
-    <span class="txt-small opacity-75">
-      <%= initiative.activities.count %> <%= "event".pluralize(initiative.activities.count) %>
+    <span class="txt-small txt-subtle">
+      <%= events_count %> <%= "event".pluralize(events_count) %>
     </span>
   </div>
 
-  <% if initiative.activities.any? %>
+  <% if activities.any? %>
     <div class="initiative-history-list">
-      <% initiative.activities.includes(:creator).each do |activity| %>
-        <div class="initiative-history-item flex align-start gap-half pad-quarter">
-          <div class="flex-shrink-0" style="padding-top: 2px;">
+      <% activities.each do |activity| %>
+        <div class="initiative-history-item flex align-start gap-half">
+          <div class="flex-item-no-shrink" style="padding-top: 2px;">
             <% if activity.creator %>
               <%= avatar_preview_tag activity.creator, class: "avatar--tiny", title: activity.creator.name %>
             <% else %>
               <span class="avatar avatar--tiny">?</span>
             <% end %>
           </div>
-          <div class="flex flex-column flex-grow min-width txt-small">
+          <div class="flex flex-column flex-item-grow min-width txt-small">
             <div class="txt-break" style="line-height: 1.3;">
-              <strong class="font-weight-semibold"><%= activity.creator == Current.user ? "You" : (activity.creator&.name || "Someone") %></strong>
-              <span class="opacity-90"><%= activity.description.sub(/\A(Created|Added|Completed|Reopened|Removed|Changed|Scheduled|Set|Cleared)/, &:downcase) %></span>
+              <strong class="font-weight-bold"><%= activity.creator == Current.user ? "You" : (activity.creator&.name || "Someone") %></strong>
+              <span><%= activity.description.sub(/\A(Created|Added|Completed|Reopened|Removed|Changed|Scheduled|Set|Cleared)/, &:downcase) %></span>
             </div>
-            <span class="txt-xx-small opacity-50 margin-block-start-quarter">
+            <span class="txt-xx-small txt-subtle">
               <%= time_ago_in_words(activity.created_at) %> ago
             </span>
           </div>
@@ -32,6 +36,6 @@
       <% end %>
     </div>
   <% else %>
-    <p class="txt-x-small opacity-60 italic margin-none">No history recorded yet for this initiative.</p>
+    <p class="txt-x-small txt-subtle italic margin-none">No history recorded yet for this initiative.</p>
   <% end %>
 </div>

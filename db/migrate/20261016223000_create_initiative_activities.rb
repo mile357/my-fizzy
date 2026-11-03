@@ -3,10 +3,10 @@ class CreateInitiativeActivities < ActiveRecord::Migration[8.2]
     create_table :initiative_activities, id: :uuid do |t|
       t.uuid :account_id, null: false
       t.uuid :tag_id, null: false
-      t.uuid :creator_id, null: false
+      t.uuid :creator_id
       t.string :action, null: false
       t.string :description, null: false
-      t.json :particulars, default: {}
+      t.json :particulars
 
       t.timestamps
 

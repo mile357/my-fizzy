@@ -387,7 +387,7 @@ ActiveRecord::Schema[8.2].define(version: 2026_10_16_233000) do
   create_table "initiative_activities", id: :uuid, charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
     t.uuid "account_id", null: false
     t.uuid "tag_id", null: false
-    t.uuid "creator_id", null: false
+    t.uuid "creator_id"
     t.string "action", null: false
     t.string "description", null: false
     t.json "particulars"

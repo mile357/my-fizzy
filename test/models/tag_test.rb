@@ -19,20 +19,29 @@ class TagTest < ActiveSupport::TestCase
     assert_empty Tag.unused
   end
 
-  test "initiative detection and progress percentage" do
+  test "initiative detection and progress percentage are driven strictly by milestones" do
     tag = Tag.create!(title: "q4-deliverables", start_date: 2.weeks.ago, end_date: 1.week.ago)
     assert tag.initiative?
     assert_equal 0, tag.progress_percentage
+    assert_not tag.completed?
     assert tag.overdue?
+
+    # Even with a closed card attached, 0 milestones means 0% and not completed
+    card = cards(:logo)
+    Tagging.create!(account: tag.account, tag: tag, card: card)
+    assert_equal 0, tag.reload.progress_percentage
+    assert_not tag.completed?
 
     cp1 = tag.checkpoints.create!(content: "Deliverable 1", completed: true)
     cp2 = tag.checkpoints.create!(content: "Deliverable 2", completed: false)
 
     assert_equal 50, tag.progress_percentage
+    assert_not tag.completed?
     assert tag.overdue?
 
     cp2.toggle!
     assert_equal 100, tag.progress_percentage
+    assert tag.completed?
     assert_not tag.overdue?
   end
 
@@ -67,7 +76,7 @@ class TagTest < ActiveSupport::TestCase
     assert_equal [ Date.new(2026, 6, 30), Date.new(2026, 9, 30) ], tag.reload.previous_due_dates
   end
 
-  test "previous_due_dates also parses text description if particulars absent" do
+  test "previous_due_dates parses text description even when another activity has structured particulars" do
     tag = Tag.create!(title: "legacy-roadmap", start_date: Date.new(2026, 1, 1), end_date: Date.new(2026, 8, 31))
     user = users(:kevin)
 
@@ -78,8 +87,15 @@ class TagTest < ActiveSupport::TestCase
       particulars: {},
       creator: user
     )
+    InitiativeActivity.track(
+      tag,
+      action: "dates_changed",
+      description: "Changed target date to Aug 31, 2026",
+      particulars: { old_end_date: "2026-07-01", end_date: "2026-08-31" },
+      creator: user
+    )
 
-    assert_equal [ Date.new(2026, 5, 15) ], tag.previous_due_dates
+    assert_equal [ Date.new(2026, 5, 15), Date.new(2026, 7, 1) ], tag.reload.previous_due_dates
   end
 
   test "new_tag_ids returns tags created in the past day" do
@@ -107,15 +123,22 @@ class TagTest < ActiveSupport::TestCase
     assert_includes recent_ids_after, old_tag.id
   end
 
-  test "validates title presence" do
+  test "validates title presence and length" do
     tag = Tag.new(title: "")
     assert_not tag.valid?
     assert_includes tag.errors[:title], "can't be blank"
+
+    too_long = Tag.new(title: "a" * 101)
+    assert_not too_long.valid?
+    assert_includes too_long.errors[:title], "is too long (maximum is 100 characters)"
   end
 
-  test "validates color format" do
-    valid_tag = Tag.new(title: "valid-color", color: "#3b82f6")
-    assert valid_tag.valid?
+  test "validates color format and clears color when unscheduled" do
+    valid_tag = Tag.create!(title: "valid-color", start_date: Date.current, end_date: Date.current + 1.week, color: "#3b82f6")
+    assert_equal "#3b82f6", valid_tag.color
+
+    valid_tag.update!(start_date: nil, end_date: nil)
+    assert_nil valid_tag.reload.color
 
     invalid_tag = Tag.new(title: "invalid-color", color: "blue; background: red;")
     assert_not invalid_tag.valid?
@@ -145,11 +168,14 @@ class TagTest < ActiveSupport::TestCase
     assert_equal "#ffffff", dark_3digit_tag.contrast_text_color
   end
 
-  test "unused scope excludes tags scheduled as initiatives" do
+  test "unused scope excludes tags scheduled as initiatives or having checkpoints" do
     unused_regular = Tag.create!(title: "purely-unused")
     scheduled_init = Tag.create!(title: "scheduled-no-cards", start_date: Date.current, end_date: Date.current + 2.weeks)
+    unscheduled_with_checkpoint = Tag.create!(title: "unscheduled-with-milestone")
+    unscheduled_with_checkpoint.checkpoints.create!(content: "Keep me")
 
     assert_includes Tag.unused, unused_regular
     assert_not_includes Tag.unused, scheduled_init
+    assert_not_includes Tag.unused, unscheduled_with_checkpoint
   end
 end

@@ -7,6 +7,8 @@ class Account < ApplicationRecord
   has_many :cards, dependent: :destroy
   has_many :webhooks, dependent: :destroy
   has_many :tags, dependent: :destroy
+  has_many :checkpoints, dependent: :destroy
+  has_many :initiative_activities, dependent: :destroy
   has_many :columns, dependent: :destroy
   has_many :entropies, dependent: :destroy
   has_many :exports, class_name: "Account::Export", dependent: :destroy

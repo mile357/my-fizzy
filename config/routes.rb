@@ -110,7 +110,7 @@ Rails.application.routes.draw do
   end
 
   resources :tags, only: :index
-  resources :initiatives do
+  resources :initiatives, only: [ :index, :show, :create, :update, :destroy ] do
     resources :checkpoints, module: :initiatives, only: [ :create, :update, :destroy ]
   end
 

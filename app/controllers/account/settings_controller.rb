@@ -21,7 +21,6 @@ class Account::SettingsController < ApplicationController
   end
 
   private
-
     def set_account
       @account = Current.account
     end

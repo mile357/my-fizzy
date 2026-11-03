@@ -24,10 +24,16 @@ export default class extends Controller {
     }
     this.applyZoom(false)
 
-    // Center on today or active row after initial render
+    // Restore scroll position on Turbo Stream updates, or center on today on first load
     requestAnimationFrame(() => {
-      this.scrollToToday(false)
-      this.updateScrollIndicators()
+      const savedScroll = sessionStorage.getItem("initiatives_timeline_scroll_left")
+      if (savedScroll !== null && this.hasViewportTarget) {
+        this.viewportTarget.scrollTo({ left: Math.max(0, Number(savedScroll)), behavior: "instant" })
+        this.updateScrollIndicators()
+      } else {
+        this.scrollToToday(false)
+        this.updateScrollIndicators()
+      }
     })
   }
 
@@ -51,8 +57,9 @@ export default class extends Controller {
     // Keep relative center position when switching zoom
     requestAnimationFrame(() => {
       setTimeout(() => {
-        const newScrollLeft = (this.trackTarget.offsetWidth * currentScrollRatio) - (viewport.clientWidth / 2)
-        viewport.scrollTo({ left: Math.max(0, newScrollLeft), behavior: "smooth" })
+        const newScrollLeft = Math.max(0, (this.trackTarget.offsetWidth * currentScrollRatio) - (viewport.clientWidth / 2))
+        viewport.scrollTo({ left: newScrollLeft, behavior: "smooth" })
+        sessionStorage.setItem("initiatives_timeline_scroll_left", String(newScrollLeft))
         this.updateScrollIndicators()
       }, 50)
     })
@@ -88,12 +95,16 @@ export default class extends Controller {
     if (!this.hasViewportTarget || !this.hasTrackTarget) return
     const viewport = this.viewportTarget
     const track = this.trackTarget
-    const targetX = (track.offsetWidth * (this.todayPctValue / 100)) - (viewport.clientWidth / 2)
-    viewport.scrollTo({ left: Math.max(0, targetX), behavior: smooth ? "smooth" : "instant" })
+    const targetX = Math.max(0, (track.offsetWidth * (this.todayPctValue / 100)) - (viewport.clientWidth / 2))
+    viewport.scrollTo({ left: targetX, behavior: smooth ? "smooth" : "instant" })
+    sessionStorage.setItem("initiatives_timeline_scroll_left", String(targetX))
     this.updateScrollIndicators()
   }
 
   onScroll() {
+    if (this.hasViewportTarget) {
+      sessionStorage.setItem("initiatives_timeline_scroll_left", String(this.viewportTarget.scrollLeft))
+    }
     this.updateScrollIndicators()
   }
 

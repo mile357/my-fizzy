@@ -387,10 +387,10 @@ ActiveRecord::Schema[8.2].define(version: 2026_10_16_233000) do
   create_table "initiative_activities", id: :uuid, force: :cascade do |t|
     t.uuid "account_id", null: false
     t.uuid "tag_id", null: false
-    t.uuid "creator_id", null: false
+    t.uuid "creator_id"
     t.string "action", limit: 255, null: false
     t.string "description", limit: 255, null: false
-    t.json "particulars", default: {}
+    t.json "particulars"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["account_id", "created_at"], name: "index_initiative_activities_on_account_id_and_created_at"

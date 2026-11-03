@@ -11,5 +11,5 @@
 <% end %>
 
 <%= turbo_stream.replace "unscheduled_tags_tray" do %>
-  <%= render "initiatives/tray", tags: @tags, new_tag_ids: @new_tag_ids, recent_tag_ids: @recent_tag_ids %>
+  <%= render "initiatives/tray", tags: @tags, new_tag_ids: @new_tag_ids, recent_tag_ids: @recent_tag_ids, active_initiative: @active_initiative %>
 <% end %>

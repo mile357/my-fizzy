@@ -4,19 +4,23 @@ class InitiativesController < ApplicationController
   before_action :set_initiative, only: %i[ show update destroy ]
 
   def index
-    @initiatives = initiatives_scope
-    set_tags_data
-    @active_initiative = params[:initiative_id].present? ? @initiatives.find_by(id: params[:initiative_id]) : @initiatives.first
-    set_initiative_cards
+    active = params[:initiative_id].present? ? Current.account.tags.find_by(id: params[:initiative_id]) : nil
+    prepare_index_state(active)
   end
 
   def show
-    @initiatives = initiatives_scope
-    @active_initiative = @initiative
-    set_initiative_cards
     respond_to do |format|
-      format.html
-      format.turbo_stream
+      format.html do
+        if turbo_frame_request?
+          set_initiative_cards
+        else
+          prepare_index_state(@initiative)
+          render :index
+        end
+      end
+      format.turbo_stream do
+        prepare_index_state(@initiative)
+      end
     end
   end
 
@@ -26,32 +30,39 @@ class InitiativesController < ApplicationController
       redirect_to initiatives_path
     else
       @initiative = Current.account.tags.find_or_initialize_by(title: clean_title)
+      was_new_record = @initiative.new_record?
+      old_start = @initiative.start_date
+      old_end = @initiative.end_date
       @initiative.assign_attributes(initiative_params.except(:title)) if initiative_params.except(:title).present?
 
-      if @initiative.save
-        desc = @initiative.initiative? ? "Created initiative #{@initiative.hashtag}" : "Created tag #{@initiative.hashtag}"
-        action = @initiative.initiative? ? "initiative_created" : "tag_created"
-        InitiativeActivity.track(
-          @initiative,
-          action: action,
-          description: desc,
-          particulars: { end_date: @initiative.end_date&.iso8601 }
-        )
-        @initiatives = initiatives_scope
-        set_tags_data
-        @active_initiative = @initiative
-        set_initiative_cards
+      saved = Tag.transaction do
+        if @initiative.save
+          if was_new_record
+            desc = @initiative.initiative? ? "Created initiative #{@initiative.hashtag}" : "Created tag #{@initiative.hashtag}"
+            action = @initiative.initiative? ? "initiative_created" : "tag_created"
+            InitiativeActivity.track(
+              @initiative,
+              action: action,
+              description: desc,
+              particulars: { end_date: @initiative.end_date&.iso8601 }
+            )
+          elsif @initiative.start_date != old_start || @initiative.end_date != old_end
+            track_dates_changed(@initiative, old_start, old_end)
+          end
+          true
+        else
+          false
+        end
+      end
 
+      prepare_index_state(@initiative)
+
+      if saved
         respond_to do |format|
           format.html { redirect_to initiatives_path(initiative_id: @initiative.id) }
           format.turbo_stream
         end
       else
-        @initiatives = initiatives_scope
-        set_tags_data
-        @active_initiative = @initiative
-        set_initiative_cards
-
         respond_to do |format|
           format.html { redirect_to initiatives_path, alert: @initiative.errors.full_messages.to_sentence }
           format.turbo_stream do
@@ -66,48 +77,26 @@ class InitiativesController < ApplicationController
     old_start = @initiative.start_date
     old_end = @initiative.end_date
 
-    if @initiative.update(initiative_params)
-      if @initiative.start_date != old_start || @initiative.end_date != old_end
-        desc = if @initiative.start_date && @initiative.end_date
-          "Changed dates to #{@initiative.start_date.strftime('%b %d, %Y')} – #{@initiative.end_date.strftime('%b %d, %Y')}"
-        elsif @initiative.end_date
-          "Changed target date to #{@initiative.end_date.strftime('%b %d, %Y')}"
-        elsif @initiative.start_date
-          "Changed start date to #{@initiative.start_date.strftime('%b %d, %Y')}"
-        else
-          "Cleared schedule dates"
+    saved = Tag.transaction do
+      if @initiative.update(initiative_params)
+        if @initiative.start_date != old_start || @initiative.end_date != old_end
+          track_dates_changed(@initiative, old_start, old_end)
         end
-        InitiativeActivity.track(
-          @initiative,
-          action: "dates_changed",
-          description: desc,
-          particulars: {
-            old_start_date: old_start&.iso8601,
-            old_end_date: old_end&.iso8601,
-            start_date: @initiative.start_date&.iso8601,
-            end_date: @initiative.end_date&.iso8601
-          }
-        )
+        true
+      else
+        false
       end
-      if @initiative.start_date.nil? && @initiative.end_date.nil? && @initiative.color.present?
-        @initiative.update(color: nil)
-      end
-      @initiatives = initiatives_scope
-      set_tags_data
-      @active_initiative = @initiative
-      set_initiative_cards
+    end
 
+    prepare_index_state(@initiative)
+
+    if saved
       respond_to do |format|
         format.html { redirect_to initiatives_path(initiative_id: @initiative.id) }
         format.turbo_stream
         format.json { render json: { success: true, progress: @initiative.progress_percentage } }
       end
     else
-      @initiatives = initiatives_scope
-      set_tags_data
-      @active_initiative = @initiative
-      set_initiative_cards
-
       respond_to do |format|
         format.html { redirect_to initiatives_path(initiative_id: @initiative.id), alert: @initiative.errors.full_messages.to_sentence }
         format.turbo_stream do
@@ -119,12 +108,11 @@ class InitiativesController < ApplicationController
   end
 
   def destroy
-    InitiativeActivity.track(@initiative, action: "timeline_cleared", description: "Removed from timeline")
-    @initiative.update(start_date: nil, end_date: nil, color: nil)
-    @initiatives = initiatives_scope
-    set_tags_data
-    @active_initiative = @initiatives.first
-    set_initiative_cards
+    Tag.transaction do
+      InitiativeActivity.track(@initiative, action: "timeline_cleared", description: "Removed from timeline")
+      @initiative.update!(start_date: nil, end_date: nil, color: nil)
+    end
+    prepare_index_state(nil)
 
     respond_to do |format|
       format.html { redirect_to initiatives_path }
@@ -146,8 +134,15 @@ class InitiativesController < ApplicationController
       @initiative = Current.account.tags.find(params[:id])
     end
 
+    def prepare_index_state(active_initiative)
+      @initiatives = initiatives_scope
+      set_tags_data
+      @active_initiative = active_initiative || @initiatives.first
+      set_initiative_cards
+    end
+
     def initiatives_scope
-      Current.account.tags.initiatives.chronologically.preload(:activities, :checkpoints)
+      Current.account.tags.initiatives.chronologically.preload(:checkpoints, activities: { creator: :account })
     end
 
     def set_tags_data
@@ -161,12 +156,36 @@ class InitiativesController < ApplicationController
     def set_initiative_cards
       initiative = @initiative || @active_initiative
       if initiative
-        @cards = Current.user.accessible_cards.open.merge(initiative.cards).preload(:board, :column, :assignees, :creator)
+        @cards = Current.user.accessible_cards.open.merge(initiative.cards).with_users.preload(:board, :column)
         @closed_cards_count = Current.user.accessible_cards.closed.merge(initiative.cards).count
       else
         @cards = []
         @closed_cards_count = 0
       end
+    end
+
+    def track_dates_changed(initiative, old_start, old_end)
+      desc = if initiative.start_date && initiative.end_date
+        "Changed dates to #{initiative.start_date.strftime('%b %d, %Y')} – #{initiative.end_date.strftime('%b %d, %Y')}"
+      elsif initiative.end_date
+        "Changed target date to #{initiative.end_date.strftime('%b %d, %Y')}"
+      elsif initiative.start_date
+        "Changed start date to #{initiative.start_date.strftime('%b %d, %Y')}"
+      else
+        "Cleared schedule dates"
+      end
+
+      InitiativeActivity.track(
+        initiative,
+        action: "dates_changed",
+        description: desc,
+        particulars: {
+          old_start_date: old_start&.iso8601,
+          old_end_date: old_end&.iso8601,
+          start_date: initiative.start_date&.iso8601,
+          end_date: initiative.end_date&.iso8601
+        }
+      )
     end
 
     def initiative_params

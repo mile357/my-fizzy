@@ -13,6 +13,16 @@
   </span>
 <% end %>
 
+<%= turbo_stream.replace "initiative_overdue_#{@initiative.id}" do %>
+  <div id="initiative_overdue_<%= @initiative.id %>">
+    <% if @initiative.overdue? %>
+      <div class="pad border-radius margin-block-end-half txt-x-small font-weight-bold" style="background: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3);">
+        ⚠️ Overdue — target end date passed (<%= @initiative.end_date.strftime("%b %d, %Y") %>)
+      </div>
+    <% end %>
+  </div>
+<% end %>
+
 <%= turbo_stream.replace "initiative_history_#{@initiative.id}" do %>
   <%= render "initiatives/history", initiative: @initiative %>
 <% end %>

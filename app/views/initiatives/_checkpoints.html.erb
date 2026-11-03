@@ -4,7 +4,7 @@
 %>
 <div id="initiative_checkpoints_<%= initiative.id %>" class="margin-block-start-half full-width">
   <div class="flex justify-space-between align-center margin-block-end-half">
-    <h4 id="initiative_checkpoints_<%= initiative.id %>_header" class="txt-small font-weight-bold uppercase opacity-75 margin-none">
+    <h4 id="initiative_checkpoints_<%= initiative.id %>_header" class="txt-small font-weight-bold txt-uppercase txt-subtle margin-none">
       Milestones (<%= completed_count %>/<%= total_count %>)
     </h4>
     <span id="initiative_checkpoints_<%= initiative.id %>_progress" class="txt-small font-weight-bold" style="color: <%= initiative.display_color %>;">
@@ -12,12 +12,12 @@
     </span>
   </div>
 
-  <div id="initiative_checkpoints_<%= initiative.id %>_bar" class="border-radius full-width overflow-hidden margin-block-end-half" style="height: 6px; background: rgba(255,255,255,0.1);">
+  <div id="initiative_checkpoints_<%= initiative.id %>_bar" class="border-radius full-width overflow-hidden margin-block-end-half" style="height: 6px; background: color-mix(in srgb, var(--color-ink) 12%, transparent);">
     <div style="height: 100%; width: <%= initiative.progress_percentage %>%; background: <%= initiative.display_color %>; transition: width 250ms ease;"></div>
   </div>
 
   <% if defined?(@checkpoint) && @checkpoint&.errors&.any? %>
-    <div class="txt-x-small pad-half border-radius margin-block-end-quarter" style="color: #ef4444; background: rgba(239, 68, 68, 0.1);">
+    <div class="txt-x-small pad border-radius margin-block-end-half" style="color: #ef4444; background: rgba(239, 68, 68, 0.1);">
       <%= @checkpoint.errors.full_messages.to_sentence %>
     </div>
   <% end %>
@@ -29,14 +29,14 @@
         <%= render "initiatives/checkpoint", checkpoint: checkpoint, initiative: initiative %>
       <% end %>
     <% else %>
-      <p class="txt-x-small opacity-60 italic margin-block-none">No milestones yet. Add milestone deliverables below.</p>
+      <p class="txt-x-small txt-subtle italic margin-none-block">No milestones yet. Add milestone deliverables below.</p>
     <% end %>
   </div>
 
   <% if Current.user&.admin? %>
-    <%= form_with model: [initiative, Checkpoint.new], url: initiative_checkpoints_path(initiative), method: :post, class: "flex gap-quarter full-width" do |f| %>
-      <%= f.text_field :content, placeholder: "Add a milestone…", required: true, class: "input input--small flex-grow" %>
-      <%= f.submit "+ Add", class: "btn btn--small flex-shrink-0" %>
+    <%= form_with model: [initiative, Checkpoint.new], url: initiative_checkpoints_path(initiative), method: :post, class: "flex gap-half full-width" do |f| %>
+      <%= f.text_field :content, placeholder: "Add a milestone…", required: true, maxlength: 200, class: "input txt-small flex-item-grow" %>
+      <%= f.submit "+ Add", class: "btn txt-small flex-item-no-shrink" %>
     <% end %>
   <% end %>
 </div>

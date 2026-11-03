@@ -9,3 +9,7 @@
     <%= render "initiatives/inspector", initiative: @initiative, cards: @cards %>
   <% end %>
 <% end %>
+
+<%= turbo_stream.replace "unscheduled_tags_tray" do %>
+  <%= render "initiatives/tray", tags: @tags, new_tag_ids: @new_tag_ids, recent_tag_ids: @recent_tag_ids, active_initiative: @initiative %>
+<% end %>

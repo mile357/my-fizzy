@@ -2,15 +2,25 @@ import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
   static targets = [ "item", "filterBtn", "emptyNotice", "emptyNoticeText" ]
-  static values = { current: { type: String, default: "all" } }
+  static values = {
+    current: { type: String, default: "all" },
+    emptyAll: { type: String, default: "No tags found." }
+  }
+
+  static FILTERS = [ "all", "new", "recent" ]
 
   connect() {
+    const savedFilter = sessionStorage.getItem("initiatives_tag_filter")
+    if (savedFilter && this.constructor.FILTERS.includes(savedFilter)) {
+      this.currentValue = savedFilter
+    }
     this.applyFilter(this.currentValue)
   }
 
   select(event) {
     const filter = event.currentTarget.dataset.filterValue || "all"
     this.currentValue = filter
+    sessionStorage.setItem("initiatives_tag_filter", filter)
     this.applyFilter(filter)
   }
 
@@ -40,7 +50,7 @@ export default class extends Controller {
           } else if (filter === "recent") {
             this.emptyNoticeTextTarget.textContent = "No tags created or used in the past month."
           } else {
-            this.emptyNoticeTextTarget.textContent = "No tags found. Click the + button above to add a new tag."
+            this.emptyNoticeTextTarget.textContent = this.emptyAllValue
           }
         }
       } else {

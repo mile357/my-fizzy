@@ -7,7 +7,14 @@ class Tag < ApplicationRecord
   has_many :checkpoints, -> { order(:created_at) }, dependent: :destroy
   has_many :activities, -> { order(created_at: :desc) }, class_name: "InitiativeActivity", dependent: :destroy
 
-  validates :title, presence: true, format: { without: /\A#/ }
+  scope :alphabetically, -> { order("lower(title)") }
+  scope :unused, -> { left_outer_joins(:taggings, :checkpoints).where(taggings: { id: nil }, checkpoints: { id: nil }, start_date: nil, end_date: nil) }
+  scope :initiatives, -> { where.not(start_date: nil).or(where.not(end_date: nil)) }
+  scope :chronologically, -> { order(Arel.sql("COALESCE(start_date, end_date, created_at)")) }
+
+  before_save :clear_color_when_unscheduled
+
+  validates :title, presence: true, length: { maximum: 100 }, format: { without: /\A#/ }
   validates :color, format: { with: /\A#(?:[0-9a-fA-F]{3}){1,2}\z/ }, allow_blank: true
   validate :end_date_cannot_precede_start_date
   normalizes :title, with: -> { it.downcase }
@@ -29,11 +36,6 @@ class Tag < ApplicationRecord
     end
   end
 
-  scope :alphabetically, -> { order("lower(title)") }
-  scope :unused, -> { left_outer_joins(:taggings).where(taggings: { id: nil }, start_date: nil, end_date: nil) }
-  scope :initiatives, -> { where.not(start_date: nil).or(where.not(end_date: nil)) }
-  scope :chronologically, -> { order(Arel.sql("COALESCE(start_date, end_date, created_at)")) }
-
   def hashtag
     "#" + title
   end
@@ -53,12 +55,8 @@ class Tag < ApplicationRecord
   def completed?
     if checkpoints.loaded?
       checkpoints.any? && checkpoints.all?(&:completed?)
-    elsif cards.loaded?
-      cards.any? && cards.none?(&:open?)
     elsif checkpoints.exists?
       !checkpoints.uncompleted.exists?
-    elsif cards.exists?
-      !cards.open.exists?
     else
       false
     end
@@ -70,21 +68,10 @@ class Tag < ApplicationRecord
 
   def progress_percentage
     if checkpoints.loaded?
-      if checkpoints.any?
-        ((checkpoints.count(&:completed?).to_f / checkpoints.size) * 100).round
-      elsif cards.loaded?
-        cards.any? ? ((cards.count(&:closed?).to_f / cards.size) * 100).round : 0
-      else
-        cards.any? ? ((cards.closed.count.to_f / cards.count) * 100).round : 0
-      end
-    elsif checkpoints.exists?
+      checkpoints.any? ? ((checkpoints.count(&:completed?).to_f / checkpoints.size) * 100).round : 0
+    else
       total = checkpoints.count
       total > 0 ? ((checkpoints.completed.count.to_f / total) * 100).round : 0
-    elsif cards.exists?
-      total = cards.count
-      total > 0 ? ((cards.closed.count.to_f / total) * 100).round : 0
-    else
-      0
     end
   end
 
@@ -110,17 +97,20 @@ class Tag < ApplicationRecord
 
     dates = []
     activities.each do |act|
+      found_in_particulars = false
+
       if act.particulars.is_a?(Hash)
         [ act.particulars["old_end_date"], act.particulars["end_date"] ].compact.each do |d_val|
           begin
             dates << Date.parse(d_val.to_s)
+            found_in_particulars = true
           rescue ArgumentError, TypeError, Date::Error
             nil
           end
         end
       end
 
-      if dates.empty? && act.description.present?
+      if !found_in_particulars && act.description.present?
         if act.description =~ /–\s+([A-Za-z]{3}\s+\d{1,2},\s+\d{4})/
           begin
             dates << Date.parse(::Regexp.last_match(1))
@@ -141,6 +131,10 @@ class Tag < ApplicationRecord
   end
 
   private
+    def clear_color_when_unscheduled
+      self.color = nil if start_date.nil? && end_date.nil?
+    end
+
     def end_date_cannot_precede_start_date
       if start_date.present? && end_date.present? && end_date < start_date
         errors.add(:end_date, "cannot precede start date")

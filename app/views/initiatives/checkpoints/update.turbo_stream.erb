@@ -7,7 +7,7 @@
     completed_count = @initiative.checkpoints.loaded? ? @initiative.checkpoints.count(&:completed?) : @initiative.checkpoints.completed.count
     total_count = @initiative.checkpoints.size
   %>
-  <h4 id="initiative_checkpoints_<%= @initiative.id %>_header" class="txt-small font-weight-bold uppercase opacity-75 margin-none">
+  <h4 id="initiative_checkpoints_<%= @initiative.id %>_header" class="txt-small font-weight-bold txt-uppercase txt-subtle margin-none">
     Milestones (<%= completed_count %>/<%= total_count %>)
   </h4>
 <% end %>
@@ -19,7 +19,7 @@
 <% end %>
 
 <%= turbo_stream.replace "initiative_checkpoints_#{@initiative.id}_bar" do %>
-  <div id="initiative_checkpoints_<%= @initiative.id %>_bar" class="border-radius full-width overflow-hidden margin-block-end-half" style="height: 6px; background: rgba(255,255,255,0.1);">
+  <div id="initiative_checkpoints_<%= @initiative.id %>_bar" class="border-radius full-width overflow-hidden margin-block-end-half" style="height: 6px; background: color-mix(in srgb, var(--color-ink) 12%, transparent);">
     <div style="height: 100%; width: <%= @initiative.progress_percentage %>%; background: <%= @initiative.display_color %>; transition: width 250ms ease;"></div>
   </div>
 <% end %>
@@ -33,6 +33,16 @@
     <%= @initiative.progress_percentage %>%
     <% if @initiative.overdue? %>⚠️<% end %>
   </span>
+<% end %>
+
+<%= turbo_stream.replace "initiative_overdue_#{@initiative.id}" do %>
+  <div id="initiative_overdue_<%= @initiative.id %>">
+    <% if @initiative.overdue? %>
+      <div class="pad border-radius margin-block-end-half txt-x-small font-weight-bold" style="background: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3);">
+        ⚠️ Overdue — target end date passed (<%= @initiative.end_date.strftime("%b %d, %Y") %>)
+      </div>
+    <% end %>
+  </div>
 <% end %>
 
 <%= turbo_stream.replace "initiative_history_#{@initiative.id}" do %>

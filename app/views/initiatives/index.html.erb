@@ -14,7 +14,7 @@
         <%= render "initiatives/timeline", initiatives: @initiatives, active_initiative: @active_initiative %>
       <% end %>
 
-      <%= render "initiatives/tray", tags: @tags, new_tag_ids: @new_tag_ids, recent_tag_ids: @recent_tag_ids %>
+      <%= render "initiatives/tray", tags: @tags, new_tag_ids: @new_tag_ids, recent_tag_ids: @recent_tag_ids, active_initiative: @active_initiative %>
     </div>
 
     <!-- Right Column: Interactive Initiative Inspector Drawer -->

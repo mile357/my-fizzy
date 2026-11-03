@@ -20,9 +20,24 @@ class InitiativesControllerTest < ActionDispatch::IntegrationTest
     assert_select ".timeline-header__title", text: "Timeline"
   end
 
-  test "show" do
+  test "show renders full index layout on direct HTML visit and frame only on turbo-frame request" do
     get initiative_path(@initiative)
     assert_response :success
+    assert_select ".timeline-header__title", text: "Timeline"
+    assert_select "#unscheduled_tags_tray"
+    assert_select "turbo-frame#initiative_inspector"
+
+    get initiative_path(@initiative), headers: { "Turbo-Frame" => "initiative_inspector" }
+    assert_response :success
+    assert_select "turbo-frame#initiative_inspector"
+    assert_select ".timeline-header__title", count: 0
+  end
+
+  test "index with initiative_id selects an unscheduled tag in the inspector" do
+    unscheduled = Tag.create!(title: "backlog-tag")
+    get initiatives_path(initiative_id: unscheduled.id)
+    assert_response :success
+    assert_select "turbo-frame#initiative_inspector", /#backlog-tag/
   end
 
   test "create" do
@@ -31,6 +46,16 @@ class InitiativesControllerTest < ActionDispatch::IntegrationTest
     end
     assert_redirected_to initiatives_path(initiative_id: Tag.last.id)
     assert_equal "initiative_created", InitiativeActivity.last.action
+  end
+
+  test "create existing unscheduled tag does not duplicate tag_created activity" do
+    existing = Tag.create!(title: "existing-tag")
+    assert_no_difference -> { Tag.count } do
+      assert_no_difference -> { existing.activities.count } do
+        post initiatives_path, params: { tag: { title: "existing-tag" } }, as: :turbo_stream
+      end
+    end
+    assert_response :success
   end
 
   test "create via turbo stream" do

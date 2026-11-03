@@ -20,4 +20,15 @@ class DeleteUnusedTagsJobTest < ActiveJob::TestCase
 
     assert Tag.exists?(initiative.id), "Initiative tag should be preserved even without cards"
   end
+
+  test "preserves unscheduled tags that have milestones even if they have no cards" do
+    tag_with_milestone = Tag.create!(title: "unscheduled-roadmap")
+    tag_with_milestone.checkpoints.create!(content: "Phase 1")
+
+    assert_no_changes -> { Tag.count } do
+      DeleteUnusedTagsJob.perform_now
+    end
+
+    assert Tag.exists?(tag_with_milestone.id), "Tag with milestones should be preserved even when unscheduled"
+  end
 end

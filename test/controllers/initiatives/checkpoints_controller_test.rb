@@ -26,9 +26,17 @@ class Initiatives::CheckpointsControllerTest < ActionDispatch::IntegrationTest
     assert_equal 100, @initiative.reload.progress_percentage
     assert_equal "milestone_completed", @initiative.activities.first.action
     assert_match "initiative_checkpoints_#{@initiative.id}", response.body
+    assert_match "initiative_overdue_#{@initiative.id}", response.body
     assert_match "timeline_bar_fill", response.body
     assert_match "timeline_bar_meta", response.body
     assert_no_match "timeline-row", response.body # Never replaces the entire row
+  end
+
+  test "updating checkpoint without changing completed does not record duplicate activity" do
+    assert_no_difference -> { @initiative.activities.count } do
+      patch initiative_checkpoint_path(@initiative, @checkpoint), params: { checkpoint: { completed: false } }, as: :turbo_stream
+    end
+    assert_response :success
   end
 
   test "destroy checkpoint via turbo stream" do
@@ -38,6 +46,7 @@ class Initiatives::CheckpointsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_equal "milestone_removed", @initiative.activities.first.action
     assert_match "initiative_checkpoints_#{@initiative.id}", response.body
+    assert_match "initiative_overdue_#{@initiative.id}", response.body
   end
 
   test "returns not found when initiatives are disabled for account" do
@@ -59,9 +68,13 @@ class Initiatives::CheckpointsControllerTest < ActionDispatch::IntegrationTest
     assert_response :forbidden
   end
 
-  test "create checkpoint returns unprocessable_entity on blank content" do
+  test "create checkpoint returns unprocessable_entity on blank or overly long content" do
     post initiative_checkpoints_path(@initiative), params: { checkpoint: { content: "" } }, as: :turbo_stream
     assert_response :unprocessable_entity
     assert_match "can&#39;t be blank", response.body
+
+    post initiative_checkpoints_path(@initiative), params: { checkpoint: { content: "a" * 201 } }, as: :turbo_stream
+    assert_response :unprocessable_entity
+    assert_match "too long", response.body
   end
 end

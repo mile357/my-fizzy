@@ -6,7 +6,7 @@ class Checkpoint < ApplicationRecord
   scope :uncompleted, -> { where(completed: false) }
   scope :chronologically, -> { order(:created_at) }
 
-  validates :content, presence: true
+  validates :content, presence: true, length: { maximum: 200 }
 
   def completed?
     completed

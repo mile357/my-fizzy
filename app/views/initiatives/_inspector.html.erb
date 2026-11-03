@@ -1,6 +1,6 @@
 <div id="initiative_inspector" class="panel pad flex flex-column gap full-width" style="box-sizing: border-box;">
   <% if initiative %>
-    <div class="flex justify-space-between align-center">
+    <div class="flex justify-space-between align-center gap-half">
       <div class="flex align-center gap-half overflow-ellipsis">
         <span style="display: inline-block; width: 14px; height: 14px; border-radius: 50%; background: <%= initiative.display_color %>; flex-shrink: 0;"></span>
         <h2 class="txt-large font-weight-black margin-none overflow-ellipsis"><%= initiative.hashtag %></h2>
@@ -9,7 +9,7 @@
       <% if Current.user&.admin? && (initiative.start_date.present? || initiative.end_date.present?) %>
         <%= button_to initiative_path(initiative),
                       method: :delete,
-                      class: "btn btn--negative txt-xx-small txt-tight-lines txt-align-center flex-shrink-0",
+                      class: "btn btn--negative txt-xx-small txt-tight-lines txt-align-center flex-item-no-shrink",
                       style: "padding: 0.35em 0.85em;",
                       data: { turbo_confirm: "Remove #{initiative.hashtag} from the timeline?" } do %>
           <span>Remove from<br>timeline</span>
@@ -18,43 +18,45 @@
     </div>
 
     <% if initiative.errors.any? %>
-      <div class="txt-x-small pad-half border-radius" style="color: #ef4444; background: rgba(239, 68, 68, 0.1);">
+      <div class="txt-x-small pad-block-half pad-inline border-radius" style="color: var(--color-negative, #ef4444); background: color-mix(in srgb, var(--color-negative, #ef4444) 12%, transparent);">
         <%= initiative.errors.full_messages.to_sentence %>
       </div>
     <% end %>
 
-    <% if initiative.overdue? %>
-      <div class="txt-xx-small font-weight-bold border-radius pad-quarter" style="color: #ef4444; background: rgba(239, 68, 68, 0.1);">
-        ⚠️ Overdue (Target was <%= initiative.end_date.strftime("%b %d, %Y") %>)
-      </div>
-    <% end %>
+    <div id="initiative_overdue_<%= initiative.id %>" class="empty:hidden">
+      <% if initiative.overdue? %>
+        <div class="txt-xx-small font-weight-bold border-radius pad-block-half pad-inline" style="color: var(--color-negative, #ef4444); background: color-mix(in srgb, var(--color-negative, #ef4444) 12%, transparent);">
+          ⚠️ Overdue (Target was <%= initiative.end_date.strftime("%b %d, %Y") %>)
+        </div>
+      <% end %>
+    </div>
 
     <% if Current.user&.admin? %>
-      <!-- Date Range & Color Form (2-row grid so inputs never push offscreen) -->
+      <!-- Date Range & Color Form (2-column grid so inputs never push offscreen) -->
       <%= form_with model: initiative, url: initiative_path(initiative), method: :patch, class: "flex flex-column gap-half full-width" do |f| %>
-        <div class="grid gap-half" style="grid-template-columns: 1fr 1fr;">
-          <div class="flex flex-column gap-quarter">
-            <%= f.label :start_date, "Start Date", class: "txt-xx-small opacity-75 uppercase font-weight-bold" %>
-            <%= f.date_field :start_date, class: "input input--small" %>
+        <div class="inspector-date-grid gap-half">
+          <div class="flex flex-column gap-half">
+            <%= f.label :start_date, "Start Date", class: "txt-xx-small txt-subtle txt-uppercase font-weight-bold" %>
+            <%= f.date_field :start_date, class: "input txt-small" %>
           </div>
-          <div class="flex flex-column gap-quarter">
-            <%= f.label :end_date, "End Date", class: "txt-xx-small opacity-75 uppercase font-weight-bold" %>
-            <%= f.date_field :end_date, class: "input input--small" %>
+          <div class="flex flex-column gap-half">
+            <%= f.label :end_date, "End Date", class: "txt-xx-small txt-subtle txt-uppercase font-weight-bold" %>
+            <%= f.date_field :end_date, class: "input txt-small" %>
           </div>
         </div>
 
-        <div class="flex justify-space-between align-center gap-half margin-block-start-quarter">
+        <div class="flex justify-space-between align-center gap-half margin-block-start-half">
           <div class="flex align-center gap-half">
-            <%= f.color_field :color, value: initiative.display_color, class: "input input--small", style: "height: 32px; width: 38px; padding: 2px; cursor: pointer;" %>
-            <%= f.label :color, "Tag Color", class: "txt-xx-small opacity-75 font-weight-bold uppercase" %>
+            <%= f.color_field :color, value: initiative.display_color, class: "input txt-small", style: "height: 32px; width: 38px; padding: 2px; cursor: pointer;" %>
+            <%= f.label :color, "Tag Color", class: "txt-xx-small txt-subtle font-weight-bold txt-uppercase" %>
           </div>
-          <%= f.submit (initiative.start_date.present? || initiative.end_date.present?) ? "Save Dates" : "Add to Timeline", class: "btn btn--small btn--primary" %>
+          <%= f.submit (initiative.start_date.present? || initiative.end_date.present?) ? "Save Dates" : "Add to Timeline", class: "btn btn--link txt-small" %>
         </div>
       <% end %>
     <% else %>
-      <div class="pad-half border-radius flex flex-column gap-quarter" style="background: rgba(255,255,255,0.04);">
+      <div class="pad-block-half pad-inline border-radius fill-shade flex flex-column gap-half">
         <div class="flex justify-space-between align-center txt-small">
-          <span class="opacity-75">Schedule:</span>
+          <span class="txt-subtle">Schedule:</span>
           <strong class="font-weight-semibold">
             <% if initiative.start_date.present? && initiative.end_date.present? %>
               <%= initiative.start_date.strftime("%b %d, %Y") %> – <%= initiative.end_date.strftime("%b %d, %Y") %>
@@ -78,10 +80,10 @@
 
     <div class="full-width">
       <div class="flex justify-space-between align-center margin-block-end-half">
-        <h4 class="txt-small font-weight-bold uppercase opacity-75 margin-none">
+        <h4 class="txt-small font-weight-bold txt-uppercase txt-subtle margin-none">
           Linked Tasks
         </h4>
-        <span class="txt-small opacity-75">
+        <span class="txt-small txt-subtle">
           <%= cards.size %> open, <%= @closed_cards_count || 0 %> closed
         </span>
       </div>
@@ -103,7 +105,7 @@
                   <tr class="linked-tasks-table__board-row">
                     <td colspan="3">
                       <span><%= board.name %></span>
-                      <span class="opacity-60">(<%= board_cards.size %>)</span>
+                      <span class="translucent">(<%= board_cards.size %>)</span>
                     </td>
                   </tr>
                 <% end %>
@@ -115,7 +117,7 @@
                           <%= card.column.name %>
                         </span>
                       <% else %>
-                        <span class="card-status-badge opacity-40">—</span>
+                        <span class="card-status-badge translucent">—</span>
                       <% end %>
                     </td>
                     <td class="col-title">
@@ -123,18 +125,18 @@
                     </td>
                     <td class="col-owner">
                       <% if card.assignees.any? %>
-                        <div class="flex justify-end align-center gap-quarter">
+                        <div class="flex justify-end align-center gap-half">
                           <% if card.assignees.size <= 2 %>
                             <% card.assignees.each do |assignee| %>
                               <%= avatar_preview_tag assignee, class: "avatar--tiny", title: assignee.name %>
                             <% end %>
                           <% else %>
                             <%= avatar_preview_tag card.assignees.first, class: "avatar--tiny", title: card.assignees.first.name %>
-                            <span class="txt-xx-small opacity-60" title="<%= card.assignees.drop(1).map(&:name).to_sentence %>">+<%= card.assignees.size - 1 %></span>
+                            <span class="txt-xx-small txt-subtle" title="<%= card.assignees.drop(1).map(&:name).to_sentence %>">+<%= card.assignees.size - 1 %></span>
                           <% end %>
                         </div>
                       <% else %>
-                        <span class="txt-xx-small opacity-30">—</span>
+                        <span class="txt-xx-small translucent">—</span>
                       <% end %>
                     </td>
                   </tr>
@@ -144,7 +146,7 @@
           </table>
         </div>
       <% else %>
-        <p class="txt-x-small opacity-60 italic margin-none">No open cards currently tagged with <%= initiative.hashtag %>.</p>
+        <p class="txt-x-small txt-subtle margin-none">No open cards currently tagged with <%= initiative.hashtag %>.</p>
       <% end %>
     </div>
 
@@ -152,7 +154,7 @@
 
     <%= render "initiatives/history", initiative: initiative %>
   <% else %>
-    <div class="pad-double txt-align-center opacity-60">
+    <div class="pad-double txt-align-center txt-subtle">
       <h3 class="txt-large font-weight-black margin-block-end-half">Initiative Inspector</h3>
       <p class="txt-medium">Select an initiative from the timeline or schedule a new tag to inspect and track milestones.</p>
     </div>
